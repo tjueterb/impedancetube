@@ -11,7 +11,7 @@ import csv
 import numpy as np
 from os.path import join
 
-calibpath = '..'
+calibpath = '.'
 calibfile = '2021-05-05_calibration.csv'
 calibdelimiter = ' '
 serial_nbr = []
