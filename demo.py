@@ -20,7 +20,8 @@ td = TimeSamples(name=join(filepath, filename), calib=calibration)
 # get frequency data / csm:
 freq_data = PowerSpectra(time_data=td,
                          block_size=4*2048,
-                         window='Hanning')
+                         window='Hanning',
+                         cached=False)
 
 plt.figure()
 
