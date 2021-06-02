@@ -21,10 +21,8 @@ class Measurement(HasPrivateTraits):
     d = Float(0.7, desc='length of test specimen (test tube section is 0.7m)')
 
     # channels of the microphones in the given freq_data object
-    ref_channel = Int(5,
-                      desc="Channel index of the reference mic")
-    mic_channels = List([5, 4, 1, 0],
-                        minlen=4, maxlen=4,
+    ref_channel = Int(desc="Channel index of the reference mic")
+    mic_channels = List(minlen=4, maxlen=4,
                         desc="Channel indices of mics in positions 1-4")
 
     # Block size
@@ -92,8 +90,8 @@ class Measurement(HasPrivateTraits):
 
         H_n_ref = np.empty(csm.shape[0:2], dtype=complex)  # create empty array
 
-        for i in range(self.freq_data.numchannels):
-            H_n_ref[:, i] = csm[:, i, self.ref_channel] / \
+        for n in range(self.freq_data.numchannels):
+            H_n_ref[:, n] = csm[:, n, self.ref_channel] / \
                 csm[:, self.ref_channel, self.ref_channel]  # eq (15)
         return H_n_ref
 
@@ -112,12 +110,12 @@ class Measurement(HasPrivateTraits):
                       H[:, self.mic_channels[1]] * np.exp(-1j*k*(self.l1+self.s1))) /   \
                 (2 * np.sin(k*self.s1))
             # eq (18):
-            B = 1j * (H[:, self.mic_channels[1]] * np.exp(-1j*k*(self.l1+self.s1)) -
-                      H[:, self.mic_channels[0]] * np.exp(-1j*k*(self.l1))) /      \
+            B = 1j * (H[:, self.mic_channels[1]] * np.exp(+1j*k*(self.l1+self.s1)) -
+                      H[:, self.mic_channels[0]] * np.exp(+1j*k*(self.l1))) /      \
                 (2 * np.sin(k*self.s1))
             # eq (19):
-            C = 1j * (H[:, self.mic_channels[2]] * np.exp(-1j*k*(self.l2+self.s2)) -
-                      H[:, self.mic_channels[3]] * np.exp(-1j*k*(self.l2))) /      \
+            C = 1j * (H[:, self.mic_channels[2]] * np.exp(+1j*k*(self.l2+self.s2)) -
+                      H[:, self.mic_channels[3]] * np.exp(+1j*k*(self.l2))) /      \
                 (2 * np.sin(k*self.s2))
             # eq (20):
             D = 1j * (H[:, self.mic_channels[3]] * np.exp(-1j*k*(self.l2)) -
@@ -150,8 +148,9 @@ class Measurement(HasPrivateTraits):
         T = self.transfer_matrix_one_load
 
         # Transmission Coefficient (anechoic backed) (eq (25)):
-        t = 2 * np.exp(1j*k*self.tube_d) / (T[:, 0, 0] + T[:, 0, 1] /
-                                            (rho * self.c) + T[:, 1, 0]*(rho*self.c) + T[:, 1, 1])
+        t = 2 * np.exp(1j*k*self.d) / \
+            (T[:, 0, 0] + T[:, 0, 1] / (rho * self.c) +
+             T[:, 1, 0]*(rho*self.c) + T[:, 1, 1])
         return t
 
     def _get_working_frequency_range(self):
