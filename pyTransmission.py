@@ -14,11 +14,11 @@ class Measurement(HasPrivateTraits):
                            desc='air density')
 
     # Tube dimensions
-    l1 = Float(0.2, desc='distance between beginning of speciman and mic 2')
-    l2 = Float(0.9, desc='distance between beginning of specimen and mic 3')
+    l1 = Float(0.3, desc='distance between beginning of speciman and mic 2')
+    l2 = Float(0.8, desc='distance between beginning of specimen and mic 3')
     s1 = Trait(0.085, 0.5, desc='Distance between mic 1 and 2 in m')
     s2 = Trait(0.085, 0.5, desc='Distance between mic 3 and 4 in m')
-    d = Float(0.7, desc='length of test specimen (test tube section is 0.7m)')
+    d = Float(0.5, desc='length of test specimen (test tube section is 0.7m)')
 
     # channels of the microphones in the given freq_data object
     ref_channel = Int(desc="Channel index of the reference mic")
