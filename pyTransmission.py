@@ -38,6 +38,9 @@ class Measurement(HasPrivateTraits):
     freq_data = Trait(PowerSpectra,
                       desc="power spectra object")
 
+    # wave number vector:
+    k = Property(depends_on=['freq_data'])
+
     # The transfer function for all microphones:
     transfer_function = Property(
         desc='Transfer function between all mics and ref. mic (channel i_ref)')
@@ -95,10 +98,11 @@ class Measurement(HasPrivateTraits):
                 csm[:, self.ref_channel, self.ref_channel]  # eq (15)
         return H_n_ref
 
-    def _get_transfer_matrix_one_load(self):
-        # Calculate wave numbers:
+    def _get_k(self):
         k = 2*np.pi * self.freq_data.fftfreq() / self.c
+        return k
 
+    def _get_transfer_matrix_one_load(self):
         # Get transfer function:
         H = self.transfer_function
 
@@ -106,27 +110,27 @@ class Measurement(HasPrivateTraits):
         with np.errstate(divide='ignore', invalid='ignore'):
             # Decompose wave field:
             # eq (17):
-            A = 1j * (H[:, self.mic_channels[0]] * np.exp(-1j*k*(self.l1)) -
-                      H[:, self.mic_channels[1]] * np.exp(-1j*k*(self.l1+self.s1))) /   \
-                (2 * np.sin(k*self.s1))
+            A = 1j * (H[:, self.mic_channels[0]] * np.exp(-1j*self.k*(self.l1)) -
+                      H[:, self.mic_channels[1]] * np.exp(-1j*self.k*(self.l1+self.s1))) /   \
+                (2 * np.sin(self.k*self.s1))
             # eq (18):
-            B = 1j * (H[:, self.mic_channels[1]] * np.exp(+1j*k*(self.l1+self.s1)) -
-                      H[:, self.mic_channels[0]] * np.exp(+1j*k*(self.l1))) /      \
-                (2 * np.sin(k*self.s1))
+            B = 1j * (H[:, self.mic_channels[1]] * np.exp(+1j*self.k*(self.l1+self.s1)) -
+                      H[:, self.mic_channels[0]] * np.exp(+1j*self.k*(self.l1))) /      \
+                (2 * np.sin(self.k*self.s1))
             # eq (19):
-            C = 1j * (H[:, self.mic_channels[2]] * np.exp(+1j*k*(self.l2+self.s2)) -
-                      H[:, self.mic_channels[3]] * np.exp(+1j*k*(self.l2))) /      \
-                (2 * np.sin(k*self.s2))
+            C = 1j * (H[:, self.mic_channels[2]] * np.exp(+1j*self.k*(self.l2+self.s2)) -
+                      H[:, self.mic_channels[3]] * np.exp(+1j*self.k*(self.l2))) /      \
+                (2 * np.sin(self.k*self.s2))
             # eq (20):
-            D = 1j * (H[:, self.mic_channels[3]] * np.exp(-1j*k*(self.l2)) -
-                      H[:, self.mic_channels[2]] * np.exp(-1j*k*(self.l2+self.s2))) /   \
-                (2 * np.sin(k*self.s2))
+            D = 1j * (H[:, self.mic_channels[3]] * np.exp(-1j*self.k*(self.l2)) -
+                      H[:, self.mic_channels[2]] * np.exp(-1j*self.k*(self.l2+self.s2))) /   \
+                (2 * np.sin(self.k*self.s2))
 
             # Calculate acoustic pressure and velocity on both faces of specimen:
             p0 = A + B
-            pd = C * np.exp(-1j*k*self.d) + D * np.exp(1j*k*self.d)
+            pd = C * np.exp(-1j*self.k*self.d) + D * np.exp(1j*self.k*self.d)
             u0 = (A-B) / (self.air_density * self.c)
-            ud = (C * np.exp(-1j*k*self.d) - D * np.exp(1j*k*self.d)) / \
+            ud = (C * np.exp(-1j*self.k*self.d) - D * np.exp(1j*self.k*self.d)) / \
                 (self.air_density * self.c)
 
         # calculate Transfer Matrix:
@@ -139,16 +143,14 @@ class Measurement(HasPrivateTraits):
         return T
 
     def _get_transmission_coefficient(self):
-        # Wave Coefficients:
-        k = 2*np.pi * self.freq_data.fftfreq() / self.c
 
         # Air Density:
         rho = self.air_density
-
+        # Transfer Matrix:
         T = self.transfer_matrix_one_load
 
         # Transmission Coefficient (anechoic backed) (eq (25)):
-        t = 2 * np.exp(1j*k*self.d) / \
+        t = 2 * np.exp(1j*self.k*self.d) / \
             (T[:, 0, 0] + T[:, 0, 1] / (rho * self.c) +
              T[:, 1, 0]*(rho*self.c) + T[:, 1, 1])
         return t
