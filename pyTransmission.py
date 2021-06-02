@@ -51,6 +51,10 @@ class Measurement(HasPrivateTraits):
     # transmission coefficient:
     transmission_coefficient = Property()
 
+    # Transmission loss:
+    transmission_loss = Property()
+
+    # Working frequency range:
     working_frequency_range = Property()
 
     def _get_c(self):
@@ -154,6 +158,11 @@ class Measurement(HasPrivateTraits):
             (T[:, 0, 0] + T[:, 0, 1] / (rho * self.c) +
              T[:, 1, 0]*(rho*self.c) + T[:, 1, 1])
         return t
+
+    def _get_transmission_loss(self):
+        # Normal incidence Transmission loss (eq. (26)):
+        TL = 20*np.log10(np.absolute(1/self.transmission_coefficient))
+        return TL
 
     def _get_working_frequency_range(self):
         """Calculates the lower and upper frequency limit of the tube. 

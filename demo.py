@@ -51,7 +51,7 @@ for spacing in ['narrow', 'wide']:
     t = msm.transmission_coefficient
 
     # calculate transmission loss
-    transmission_loss = -10*np.log10(t)
+    transmission_loss = msm.transmission_loss
 
     # get frequency working range
     freqrange = msm.working_frequency_range
@@ -59,12 +59,11 @@ for spacing in ['narrow', 'wide']:
     # only use frequencies in the working range
     idx = np.logical_and(freqs >= freqrange[0], freqs <= freqrange[1])
 
-    # plot real part
-    plt.plot(freqs[idx], transmission_loss[idx].real)
+    # plot
+    plt.plot(freqs[idx], transmission_loss[idx])
 
 plt.legend(['narrow', 'wide'])
 plt.title(filename)
 plt.ylim([-10, 30])
 plt.xlabel('f [Hz]')
 plt.ylabel('Transmission loss [dB]')
-plt.show
