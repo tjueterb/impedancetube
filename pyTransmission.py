@@ -10,8 +10,8 @@ class Measurement(HasPrivateTraits):
     atmospheric_pressure = Float(default_value=101.325)
     c = Property(depends_on=['temperature'],
                  desc='Speed of sound')
-    air_density = Property(depends_on=['temperature', 'atmospheric_pressure'],
-                           desc='air density')
+    rho = Property(depends_on=['temperature', 'atmospheric_pressure'],
+                   desc='air density')
 
     # Tube dimensions
     l1 = Float(0.3, desc='distance between beginning of speciman and mic 2')
@@ -68,7 +68,7 @@ class Measurement(HasPrivateTraits):
         c = 20.047 * np.sqrt(273.15 + self.temperature)
         return c
 
-    def _get_air_density(self):
+    def _get_rho(self):
         """Calculates air density in kg/m^3
         See 8.3 (eq. (5))
         Args:
@@ -133,9 +133,9 @@ class Measurement(HasPrivateTraits):
             # Calculate acoustic pressure and velocity on both faces of specimen:
             p0 = A + B
             pd = C * np.exp(-1j*self.k*self.d) + D * np.exp(1j*self.k*self.d)
-            u0 = (A-B) / (self.air_density * self.c)
+            u0 = (A-B) / (self.rho * self.c)
             ud = (C * np.exp(-1j*self.k*self.d) - D * np.exp(1j*self.k*self.d)) / \
-                (self.air_density * self.c)
+                (self.rho * self.c)
 
         # calculate Transfer Matrix:
         T = np.zeros(shape=(H.shape[0], 2, 2), dtype=complex)
@@ -147,16 +147,13 @@ class Measurement(HasPrivateTraits):
         return T
 
     def _get_transmission_coefficient(self):
-
-        # Air Density:
-        rho = self.air_density
         # Transfer Matrix:
         T = self.transfer_matrix_one_load
 
         # Transmission Coefficient (anechoic backed) (eq (25)):
         t = 2 * np.exp(1j*self.k*self.d) / \
-            (T[:, 0, 0] + T[:, 0, 1] / (rho * self.c) +
-             T[:, 1, 0]*(rho*self.c) + T[:, 1, 1])
+            (T[:, 0, 0] + T[:, 0, 1] / (self.rho * self.c) +
+             T[:, 1, 0]*(self.rho*self.c) + T[:, 1, 1])
         return t
 
     def _get_transmission_loss(self):
