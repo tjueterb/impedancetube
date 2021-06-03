@@ -69,13 +69,10 @@ class Measurement(HasPrivateTraits):
         return c
 
     def _get_rho(self):
-        """Calculates air density in kg/m^3
-        See 8.3 (eq. (5))
-        Args:
-            P (float): Atmospheric pressure in kPa. 
-            T (float): Room remperature in °C. 
+        """Getter function for the air density
+
         Returns:
-            rho (float): Air density in kg/m^3
+            [type]: [description]
         """
         rho = 1.290 * (self.atmospheric_pressure/101.325) * \
             (273.15 / (273.15 + self.temperature))
@@ -85,28 +82,41 @@ class Measurement(HasPrivateTraits):
         """Calculates the transfer function for all microphones
         See 8.5.1 eq (15)
 
-        Args:
-            ps (PowerSpectra): acoular power spectra object of measurement
-            i_ref (int): index of the reference microphone 
-
+        NOTE: Phase and amplitude correction transfer functions 
+              are not implemented yet
+              
         Returns:
             [array]:    Transfer function for all microphones 
-                        size: (f x n), f: frequencies as in ps, n: channels
+                        size: (f x n), f: frequencies, n: channels
         """
         csm = self.freq_data.csm
 
         H_n_ref = np.empty(csm.shape[0:2], dtype=complex)  # create empty array
 
         for n in range(self.freq_data.numchannels):
+            #NOTE: correct indexing of the csm verified with Adam
             H_n_ref[:, n] = csm[:, n, self.ref_channel] / \
                 csm[:, self.ref_channel, self.ref_channel]  # eq (15)
         return H_n_ref
 
     def _get_k(self):
-        k = 2*np.pi * self.freq_data.fftfreq() / self.c
+        """Calculates the wave number coefficients for all frequencies
+        See 3.2: k = 2*pi*f / c
+        
+        Returns:
+            [array]: size: (f x 1)
+        """
+        k = 2 * np.pi * self.freq_data.fftfreq() / self.c
         return k
 
     def _get_transfer_matrix_one_load(self):
+        """Calculates the one load transfer matrix 
+        See 8.5.4.2
+        
+        Returns:
+            [array]: Transfer Matrix
+                     size:(f x 2 x 2), f: frequencies
+        """ 
         # Get transfer function:
         H = self.transfer_function
 
@@ -114,28 +124,28 @@ class Measurement(HasPrivateTraits):
         with np.errstate(divide='ignore', invalid='ignore'):
             # Decompose wave field:
             # eq (17):
-            A = 1j * (H[:, self.mic_channels[0]] * np.exp(-1j*self.k*(self.l1)) -
-                      H[:, self.mic_channels[1]] * np.exp(-1j*self.k*(self.l1+self.s1))) /   \
-                (2 * np.sin(self.k*self.s1))
+            A = 1j * ((H[:, self.mic_channels[0]] * np.exp(-1j*self.k*(self.l1)) -
+                       H[:, self.mic_channels[1]] * np.exp(-1j*self.k*(self.l1+self.s1))) /
+                      (2 * np.sin(self.k*self.s1)))
             # eq (18):
-            B = 1j * (H[:, self.mic_channels[1]] * np.exp(+1j*self.k*(self.l1+self.s1)) -
-                      H[:, self.mic_channels[0]] * np.exp(+1j*self.k*(self.l1))) /      \
-                (2 * np.sin(self.k*self.s1))
+            B = 1j * ((H[:, self.mic_channels[1]] * np.exp(+1j*self.k*(self.l1+self.s1)) -
+                       H[:, self.mic_channels[0]] * np.exp(+1j*self.k*(self.l1))) /
+                      (2 * np.sin(self.k*self.s1)))
             # eq (19):
-            C = 1j * (H[:, self.mic_channels[2]] * np.exp(+1j*self.k*(self.l2+self.s2)) -
-                      H[:, self.mic_channels[3]] * np.exp(+1j*self.k*(self.l2))) /      \
-                (2 * np.sin(self.k*self.s2))
+            C = 1j * ((H[:, self.mic_channels[2]] * np.exp(+1j*self.k*(self.l2+self.s2)) -
+                       H[:, self.mic_channels[3]] * np.exp(+1j*self.k*(self.l2))) /
+                      (2 * np.sin(self.k*self.s2)))
             # eq (20):
-            D = 1j * (H[:, self.mic_channels[3]] * np.exp(-1j*self.k*(self.l2)) -
-                      H[:, self.mic_channels[2]] * np.exp(-1j*self.k*(self.l2+self.s2))) /   \
-                (2 * np.sin(self.k*self.s2))
+            D = 1j * ((H[:, self.mic_channels[3]] * np.exp(-1j*self.k*(self.l2)) -
+                       H[:, self.mic_channels[2]] * np.exp(-1j*self.k*(self.l2+self.s2))) /
+                      (2 * np.sin(self.k*self.s2)))
 
             # Calculate acoustic pressure and velocity on both faces of specimen:
             p0 = A + B
             pd = C * np.exp(-1j*self.k*self.d) + D * np.exp(1j*self.k*self.d)
             u0 = (A-B) / (self.rho * self.c)
-            ud = (C * np.exp(-1j*self.k*self.d) - D * np.exp(1j*self.k*self.d)) / \
-                (self.rho * self.c)
+            ud = ((C * np.exp(-1j*self.k*self.d) - D * np.exp(1j*self.k*self.d)) /
+                  (self.rho * self.c))
 
         # calculate Transfer Matrix:
         T = np.zeros(shape=(H.shape[0], 2, 2), dtype=complex)
@@ -147,32 +157,38 @@ class Measurement(HasPrivateTraits):
         return T
 
     def _get_transmission_coefficient(self):
+        """Calculates transmission coefficient
+        See 8.5.5.1, eq (25)
+
+        Returns:
+            [array]: Transmission coefficient
+                     size: (f x 1), f: frequencies
+        """
         # Transfer Matrix:
         T = self.transfer_matrix_one_load
 
         # Transmission Coefficient (anechoic backed) (eq (25)):
-        t = 2 * np.exp(1j*self.k*self.d) / \
-            (T[:, 0, 0] + T[:, 0, 1] / (self.rho * self.c) +
-             T[:, 1, 0]*(self.rho*self.c) + T[:, 1, 1])
+        t = (2 * np.exp(1j*self.k*self.d) /
+                (T[:, 0, 0] + 
+                 T[:, 0, 1] / (self.rho * self.c) +
+                 T[:, 1, 0] * (self.rho * self.c) + 
+                 T[:, 1, 1]))
         return t
 
     def _get_transmission_loss(self):
-        # Normal incidence Transmission loss (eq. (26)):
+        """Calculates Normal Incidence Transmission Loss
+        See 8.5.5.2, eq (26)
+
+        Returns:
+            [array]: Transmission loss
+                     size: (f x 1), f: frequencies
+        """
         TL = 20*np.log10(np.absolute(1/self.transmission_coefficient))
         return TL
 
     def _get_working_frequency_range(self):
         """Calculates the lower and upper frequency limit of the tube. 
-        See chapter 6.2.2 (Eq 1 and 2)
-
-        Args:
-            x (float):      spacing between microphones in m
-            d (float):      diameter (if circular) or 
-                            largest section dimension (if rectangular)
-                            of the tube (in m)
-            shape (string, optional):   'circ' for circular tube
-                                        'rect' for rectangular tube
-            c (float, optional):        speed of sound in m/s, default = 343
+        See 6.2 (eq. (1) and (2)) and 6.5.3 (eq. (3))
 
         Returns:
             tuple: lower and upper frequency limit

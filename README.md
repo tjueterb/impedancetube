@@ -66,7 +66,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 idx = np.logical_and(freqs >= f_low, freqs <= f_high)
-plt.plot(freqs[idx], transmission_loss[idx])
+plt.plot(freqs[idx], TL[idx])
 ```
 Some other traits you can set and their default values:
 `temperature=20.`, `atmospheric_pressure=101.325`, `l1=0.3`, `l2=0.8`, `d=0.5`
