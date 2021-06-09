@@ -56,6 +56,9 @@ class Measurement(HasPrivateTraits):
 
     # Working frequency range:
     working_frequency_range = Property()
+    
+    # Characteristic Impedanze in material:
+    z = Property()
 
     def _get_c(self):
         """Calculates speed of sound from temperature
@@ -215,3 +218,14 @@ class Measurement(HasPrivateTraits):
         f_upper = min(f_upper_modes, f_upper_spacing)
 
         return f_lower, f_upper
+    
+    def _get_z(self):
+        """Calculate Characteristic Impedance in material
+        See 8.5.5.6 (eq. (30))
+        Returns:
+            [array]: Characteristic Impedance
+                     size: (f x 1), f: frequencies
+        """
+        T = self.transfer_matrix_one_load
+        z = np.sqrt(T[:,0,1]/T[:,1,0])
+        return z

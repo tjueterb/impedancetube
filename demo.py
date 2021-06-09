@@ -26,7 +26,7 @@ freq_data = PowerSpectra(time_data=td,
 plt.figure()
 
 # use both narrow and wide microphone positions for lower and higher frequencies:
-for spacing in ['narrow', 'wide']:
+for spacing in ['wide', 'narrow']:
     if spacing == 'narrow':
         s1 = 0.085  # distance between mic #1 and #2
         s2 = 0.085  # distance between mic #3 and #4
@@ -62,6 +62,8 @@ for spacing in ['narrow', 'wide']:
 
     # plot
     plt.plot(freqs[idx], transmission_loss[idx])
+    
+    z = msm.z
 
 plt.legend(['narrow', 'wide'])
 plt.title(filename)
