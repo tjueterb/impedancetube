@@ -7,12 +7,11 @@ Created on Mon Feb 17 11:30:51 2020
 """
 
 import pandas as pd
-import csv
 import numpy as np
 from os.path import join
 
-calibpath = '.'
-calibfile = '2021-05-05_calibration.csv'
+calibpath = './'
+calibfile = 'calib.csv'
 calibdelimiter = ' '
 serial_nbr = []
 calib_value = []
@@ -31,8 +30,8 @@ calibfactors = to_pa(calibvalues[0])
 # create file(s)
 # =============================================================================
 
-calib_id = "2021-05-05"
-name = '2021-05-05_calibration'
+calib_id = "2021-06-10"
+name = 'calib'
 filename = join(calibpath, name+'.xml')
 
 with open(filename, 'w') as f:
