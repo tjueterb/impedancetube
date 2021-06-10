@@ -2,7 +2,7 @@
 
 from acoular.spectra import PowerSpectra
 import numpy as np
-from traits.api import HasPrivateTraits, Property, Float, Trait, Delegate, Int, List
+from traits.api import HasPrivateTraits, Property, Float, Trait, Delegate, Int, List, Array
 
 
 class Measurement(HasPrivateTraits):
@@ -21,9 +21,14 @@ class Measurement(HasPrivateTraits):
     d = Float(0.5, desc='length of test specimen (test tube section is 0.7m)')
 
     # channels of the microphones in the given freq_data object
-    ref_channel = Int(desc="Channel index of the reference mic")
-    mic_channels = List(minlen=4, maxlen=4,
+    ref_channel = Int(0, desc="Channel index of the reference mic")
+    mic_channels = List([1, 2, 3, 4], minlen=4, maxlen=4,
                         desc="Channel indices of mics in positions 1-4")
+    
+    # Amplitude and Phase correction Transfer function
+    H_c = Array()
+    #TODO: either Initialize with ones (only possible after freq_data shape is known)
+    #TODO: Or rewrite the calib class so the entire object can be handed to this class
 
     # Block size
     block_size = Delegate('freq_data')
@@ -100,6 +105,10 @@ class Measurement(HasPrivateTraits):
             #NOTE: correct indexing of the csm verified with Adam
             H_n_ref[:, n] = csm[:, n, self.ref_channel] / \
                 csm[:, self.ref_channel, self.ref_channel]  # eq (15)
+                
+        # apply correction transfer function:
+        H_n_ref = H_n_ref / self.H_c
+        
         return H_n_ref
 
     def _get_k(self):
@@ -229,3 +238,49 @@ class Measurement(HasPrivateTraits):
         T = self.transfer_matrix_one_load
         z = np.sqrt(T[:,0,1]/T[:,1,0])
         return z
+
+
+class MicSwitchCalib(HasPrivateTraits):
+    
+    #: The :class:`~acoular.spectra.PowerSpectra` object that provides the csm.
+    freq_data = Trait(PowerSpectra,
+                      desc="power spectra object")
+    
+    #: The :class:`~acoular.spectra.PowerSpectra` object that provides the csm in the switched positions.
+    freq_data_switched = Trait(PowerSpectra,
+                               desc="power spectra object")
+    
+    ref_channel = Int(0, desc='reference channel')
+    test_channel = Int(1, desc='Channel of the mic that is calibrated')
+
+    H_c = Property()
+    
+    def _get_H_c(self):
+        """Calculates the Amplitude/Phase correction transfer function for two 
+        microphones, see 8.4.5. See README.md for illustrations.
+        For example: Correction between mic 1 (pos 1, index 0) and mic 2 (pos 2, index 1)
+                     Direct configuration:   mic 1 at pos 1 and cable going into 1st input
+                                             mic 2 at pos 2 and cable going into 2nd input
+                     Switched configuration: mic 1 at pos 2 and cable going into 1st input
+                                             mic 2 at pos 1 and cable going into 2nd input
+        Returns:
+            [array]:    Correction Transfer function 
+                        size: (f,), f: frequencies
+        """
+        #Get CSMs
+        csm = self.freq_data.csm
+        csm_switched = self.freq_data_switched.csm
+        
+        # Allocate space
+        # H_1 = H_2 = H_c = np.zeros((csm.shape[0]), dtype=complex)  # create empty array
+        
+        H_1 = csm[:, self.test_channel, self.ref_channel] / \
+              csm[:, self.ref_channel , self.ref_channel]
+              
+        H_2 = csm_switched[:, self.test_channel, self.ref_channel] / \
+              csm_switched[:, self.ref_channel , self.ref_channel]
+        
+        H_c = np.sqrt( H_1 * H_2 )
+        
+        return H_c
+    
