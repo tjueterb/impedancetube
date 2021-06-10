@@ -1,16 +1,115 @@
 # pyTransmission
 A routine to calculate plane wave transmission loss in the rectangular tube at the TAP
 
-Dependencies: [acoular](http://acoular.org/), [numpy](http://numpy.org)
+Dependencies: [acoular](http://acoular.org/), [numpy](http://numpy.org). For demo.py you also need [matplotlib](https://matplotlib.org).
 
-Using conda, you can install acoular into your environment with this command:
+Using conda, you can install the needed packages into your environment with these commands:
 
 ```
 conda install -c acoular acoular
+conda install numpy matplotlib
+```
+I recommend doing the measurements as described here and modifying the demo.py script for evaluation. The demo.py assumes that you are measuring with 6 microphones simultaneously and that you are using the first microphone (nearest to the sound source) as the reference. At the end of this instruction you can find more detailed instructions if your measurements are done with custom configurations.
+
+## How to measure
+![Measurement Setup](https://github.com/tjueterb/pyTransmission/blob/main/Resources/Measurement_setup.png?raw=true)
+
+
+### Calibration 
+Calibrate the 6 microphones using a calibrator and store the results in a .csv file. See calib.csv for a simple file with calibration levels, you can use **create\_calib\_factor\_xml\_file.py** to convert a .csv file into an .xml file that works with acoular. (Not sure if this calibration is really necessary because we'll do the amplitude/phase correction in the next step anyway) 
+
+### Switched Microphone Measurements
+Now we will need to make measurement in the empty tube with an anechoic back end. These will be used to calculate amplitude and phase correction factors between the microphones. For the direct configuration, route the microphones as shown in the figure above. Recommended measuring time is 60s.
+
+For the switched configurations, switch the microphone positions **without un- and replugging the cables**. For example: This would be the routing for the switched configuration of microphones 0 and 1:
+
+* mic #0 in position 1 going into ch. 0
+* mic #1 in position 0 going into ch. 1
+
+The other switched configurations follow the same rule, just switch the positions of n-th microphone and the reference microphone. Do the following measurements:
+
+1. Measure with the direct configuration
+2. Measure with reference mic (#0) switched with mic #1
+3. Measure with reference mic (#0) switched with mic #2
+4. Measure with reference mic (#0) switched with mic #3
+5. Measure with reference mic (#0) switched with mic #4
+6. Measure with reference mic (#0) switched with mic #5
+
+Afterwards, don't forget to bring the microphones back into their original order.
+
+### Measurements
+Insert your test specimen(s) and do your measurement(s)
+
+## How do modify demo.py for your measurements
+The easiest way to evaluate measurements is taking the demo.py file and modifying it to use your freshly done measurements. Here's how:
+
+### Put the files where you need them:
+Clone/download this repository. 
+
+#### Audio Files
+For the easiest workflow, copy all your audio (.h5) files into the Resources directory. Alternatively you can modify `soundfilepath = './Resources/'` to match the path where all your audio files are.
+
+#### Calibration File
+Create a calibration .xml file with create\_calib\_factor\_xml\_file.py from your .csv file. (Currently the Script expects a space as the delimiter, modify `calibdelimiter = ' '` to whatever you need). Put the calib.xml file in your Resources folder or modify the path/filename to point to your calibration file
+
+```python
+calibpath = './Resources'
+calibfile = 'calib.xml'
 ```
 
-### How to use
-see demo.py for a simple script. The Measurement class expects a PowerSpectra object as input. See the acoular documentation for more details. Hanning window is required in the norm, a large blocksize is recommended for precision.
+### General Parameters:
+If your measurements were done as instructed, your reference channel is the first channel (0) and your four microphone channels for the narrow and wide microphone configurations don't need to be modified. T
+
+```python
+ref_channel = 0
+mic_channels_narrow = [1, 2, 3, 4]
+mic_channels_wide   = [0, 2, 3, 5]
+```
+
+### Set the filenames for the Amplitude/Phase correction
+Set the filenames of your empty measurements with the direct configuration and the switched configurations (See section [Switched Microphone Measurements](#switched_microphone_measurements)). The key of the dictionary denotes the index of the microphone that was switched with the reference (keep in mind that indexing starts at 0). The values represent the corresponding filenames.
+
+```python
+filename_direct    = 'empty_direct.h5'
+filenames_switched = {1: 'empty_switched_1-0.h5', 
+                      2: 'empty_switched_2-0.h5',
+                      3: 'empty_switched_3-0.h5',
+                      4: 'empty_switched_4-0.h5',
+                      5: 'empty_switched_5-0.h5'}
+```
+### Set the filename(s) for the Measurement
+The measurement sound files have to be in the same directory as the other sound files defined in `soundfilepath`. You can add multiple filenames to the list.
+
+```python
+filenames_measurement = ['measurement.h5',
+                        ]
+```
+
+
+
+### Set the parameters for the frequency data handling
+In the norm a Hanning window is required. A large block size increases the frequency resolution. If you set `cached = True`, the PowerSpectra object will use caching. This makes calculations faster if run repeatedly.
+
+```python
+block_size = 4*2048
+window = 'Hanning'
+overlap = '50%'
+cached = False
+```
+
+### Set parameters for plotting
+Decide if you want the plot to be saved and set the save directory. The directory will be created if it doesn't exist yet.
+```python
+savePlot = True
+plotpath = './Plots'
+```
+
+If you did everything so far correctly an run the script, you should get a plot of the transmission loss in dB for each measurement.
+
+
+## Documentation of the Measurement class
+
+The Measurement class expects a PowerSpectra object as input. See the acoular documentation for more details. Hanning window is required in the norm, a large blocksize is recommended for precision.
 
 ```python
 from acoular import TimeSamples, PowerSpectra
