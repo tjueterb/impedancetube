@@ -22,9 +22,15 @@ soundfilepath = './Resources/'
 
 # filename of empty measurement with direct configuration:
 filename_direct = 'empty_direct.h5'
+#channels of switched mic and filenames of measurements with switched configurations
+filenames_switched = {1: 'empty_switched_1-0.h5',  # <- here 2nd mic (index 1) was switched w/ ref (index 0)
+                      2: 'empty_switched_2-0.h5',
+                      3: 'empty_switched_3-0.h5',
+                      4: 'empty_switched_4-0.h5',
+                      5: 'empty_switched_5-0.h5'}
 
 # reference channel 
-# (important: The reference Channel has to stay the same in all measurements):
+# important: The reference Channel has to be 0 for the amplitude/phase correction to work!:
 ref_channel = 0
 
 # Mic channels in positions 1-4 of the narrow and wide configuration 
@@ -33,17 +39,8 @@ ref_channel = 0
 mic_channels_narrow = [1, 2, 3, 4]
 mic_channels_wide   = [0, 2, 3, 5]
 
-#channels of switched mic and filenames of measurements with switched configurations
-filenames_switched = {1: 'empty_switched_1-0.h5',  # <- here mic 1 (2nd input) was switched w/ ref (1st input)
-                      2: 'empty_switched_2-0.h5',
-                      3: 'empty_switched_3-0.h5',
-                      4: 'empty_switched_4-0.h5',
-                      5: 'empty_switched_5-0.h5'}
-
-
-
-# define measurement timedata 
-# (in the same directory as the other sound files TODO: iterate over list):
+# Filenames of the measurements:
+# (in the same directory as the other sound files):
 filenames_measurement = ['measurement.h5', # you can add files here
                         ]
 
@@ -80,10 +77,10 @@ H_c = np.ones((freq_data.csm.shape[0:2]), dtype=complex)
 # iterate over all switched configurations:
 for i in filenames_switched:
     # get timedata of switched configuration:
-    td_switched = TimeSamples(name=join(soundfilepath, filenames_switched[i]), calib=calibration)
+    time_data_switched = TimeSamples(name=join(soundfilepath, filenames_switched[i]), calib=calibration)
 
     # get frequency data of switched configuration:
-    freq_data_switched = PowerSpectra(time_data=td_switched,
+    freq_data_switched = PowerSpectra(time_data=time_data_switched,
                                       block_size=freq_data.block_size,
                                       window=freq_data.window,
                                       cached=freq_data.cached)
