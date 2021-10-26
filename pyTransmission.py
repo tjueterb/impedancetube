@@ -16,8 +16,8 @@ class Measurement(HasPrivateTraits):
     # Tube dimensions
     l1 = Float(0.3, desc='distance between beginning of speciman and mic 2')
     l2 = Float(0.8, desc='distance between beginning of specimen and mic 3')
-    s1 = Trait(0.085, 0.5, desc='Distance between mic 1 and 2 in m')
-    s2 = Trait(0.085, 0.5, desc='Distance between mic 3 and 4 in m')
+    s1 = Trait(0.085, 0.5, 0.075, 0.225,desc='Distance between mic 1 and 2 in m')
+    s2 = Trait(0.085, 0.5, 0.075, 0.225,desc='Distance between mic 3 and 4 in m')
     d = Float(0.5, desc='length of test specimen (test tube section is 0.7m)')
 
     # channels of the microphones in the given freq_data object
