@@ -14,10 +14,15 @@ class Measurement(HasPrivateTraits):
                    desc='air density')
 
     # Tube dimensions
+    '''
+    Values for the TAP ducts:
+    Rect: l1 = 0.3, l2 = 0.8,  s1,s2 = 0.085 or 0.5
+    circ: l1 = 0.2, l2 = 0.28, s1,s2 = 0.075 or 0.225
+    '''
     l1 = Float(0.3, desc='distance between beginning of speciman and mic 2')
     l2 = Float(0.8, desc='distance between beginning of specimen and mic 3')
-    s1 = Trait(0.085, 0.5, 0.075, 0.225,desc='Distance between mic 1 and 2 in m')
-    s2 = Trait(0.085, 0.5, 0.075, 0.225,desc='Distance between mic 3 and 4 in m')
+    s1 = Float(0.085,desc='Distance between mic 1 and 2 in m')
+    s2 = Float(0.085,desc='Distance between mic 3 and 4 in m')
     d = Float(0.5, desc='length of test specimen (test tube section is 0.7m)')
 
     # channels of the microphones in the given freq_data object
@@ -59,10 +64,19 @@ class Measurement(HasPrivateTraits):
     # Transmission loss:
     transmission_loss = Property()
 
+    # Reflection coefficient (hard backed):
+    reflection_coefficient = Property()
+    
+    # Absorption coefficient (hard backed):
+    absorption_coefficient = Property()
+    
+    # Propagation wavenumber in material:
+    propagation_wavenumber = Property()
+    
     # Working frequency range:
     working_frequency_range = Property()
     
-    # Characteristic Impedanze in material:
+    # Characteristic Impedance in material:
     z = Property()
 
     def _get_c(self):
@@ -180,11 +194,13 @@ class Measurement(HasPrivateTraits):
         T = self.transfer_matrix_one_load
 
         # Transmission Coefficient (anechoic backed) (eq (25)):
-        t = (2 * np.exp(1j*self.k*self.d) /
-                (T[:, 0, 0] + 
-                 T[:, 0, 1] / (self.rho * self.c) +
-                 T[:, 1, 0] * (self.rho * self.c) + 
-                 T[:, 1, 1]))
+        # Disable divide by zero warning because first entry of k is always 0
+        with np.errstate(divide='ignore', invalid='ignore'):
+            t = (2 * np.exp(1j*self.k*self.d) /
+                 (T[:, 0, 0] + 
+                  T[:, 0, 1] / (self.rho * self.c) +
+                  T[:, 1, 0] * (self.rho * self.c) + 
+                  T[:, 1, 1]))
         return t
 
     def _get_transmission_loss(self):
@@ -198,6 +214,61 @@ class Measurement(HasPrivateTraits):
         TL = 20*np.log10(np.absolute(1/self.transmission_coefficient))
         return TL
 
+    def _get_reflection_coefficient(self):
+        """Calculates reflection coefficient (hard backed)
+        See 8.5.5.3, eq (27)
+
+        Returns:
+            [array]: reflection coefficient
+                     size: (f x 1), f: frequencies
+        """
+        # Transfer Matrix:
+        T = self.transfer_matrix_one_load
+
+        # Reflection coefficient (hard backed) (eq (27)):
+        # Disable divide by zero warning because first entry of k is always 0
+        with np.errstate(divide='ignore', invalid='ignore'):
+            R = ((T[:, 0, 0] - (self.rho * self.c * T[:,1,0])) / 
+                 (T[:, 0, 0] + (self.rho * self.c * T[:,1,0])))
+        return R
+    
+    def _get_absorption_coefficient(self):
+        """Calculates absorption coefficient (hard backed)
+        See 8.5.5.4, eq (28)
+
+        Returns:
+            [array]: absorption coefficient
+                     size: (f x 1), f: frequencies
+        """
+        
+
+        # Absorption coefficient (hard backed) (eq (28)):
+        alpha = 1 - np.abs(self.reflection_coefficient)**2
+        return alpha
+    
+    def _get_propagation_wavenumber(self):
+        """Calculates propagation_wavenumber in the material
+        See 8.5.5.5, eq (29)
+
+        Returns:
+            [array]: propagation wavenumber
+                     size: (f x 1), f: frequencies
+        """
+        # Disable divide by zero warning because first entry of k is always 0
+        with np.errstate(divide='ignore', invalid='ignore'):
+            return 1 / self.d * np.arccos( self.transfer_matrix_one_load[:,0,0] )
+    
+    def _get_z(self):
+        """Calculate Characteristic Impedance in material
+        See 8.5.5.6 (eq. (30))
+        Returns:
+            [array]: Characteristic Impedance
+                     size: (f x 1), f: frequencies
+        """
+        T = self.transfer_matrix_one_load
+        z = np.sqrt(T[:,0,1]/T[:,1,0])
+        return z
+    
     def _get_working_frequency_range(self):
         """Calculates the lower and upper frequency limit of the tube. 
         See 6.2 (eq. (1) and (2)) and 6.5.3 (eq. (3))
@@ -227,19 +298,6 @@ class Measurement(HasPrivateTraits):
         f_upper = min(f_upper_modes, f_upper_spacing)
 
         return f_lower, f_upper
-    
-    def _get_z(self):
-        """Calculate Characteristic Impedance in material
-        See 8.5.5.6 (eq. (30))
-        Returns:
-            [array]: Characteristic Impedance
-                     size: (f x 1), f: frequencies
-        """
-        T = self.transfer_matrix_one_load
-        z = np.sqrt(T[:,0,1]/T[:,1,0])
-        return z
-
-
 class MicSwitchCalib(HasPrivateTraits):
     
     #: The :class:`~acoular.spectra.PowerSpectra` object that provides the csm.
