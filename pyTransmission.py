@@ -53,6 +53,9 @@ class Measurement(HasPrivateTraits):
     # Reflection coefficient (hard backed):
     reflection_coefficient_hard_backed = Property()
     
+    # Absorption coefficient (anechoic):
+    absorption_coefficient = Property()
+    
     # Absorption coefficient (hard backed):
     absorption_coefficient_hard_backed = Property()
     
@@ -283,6 +286,20 @@ class Measurement_E2611(Measurement):
             R = ((T[:, 0, 0] - (self.rho * self.c * T[:,1,0])) / 
                  (T[:, 0, 0] + (self.rho * self.c * T[:,1,0])))
         return R
+    
+    def _get_absorption_coefficient(self):
+        """Calculates absorption coefficient (anechoic backed)
+        See 8.5.5.4, eq (28)
+
+        Returns:
+            [array]: absorption coefficient
+                     size: (f x 1), f: frequencies
+        """
+        
+
+        # Absorption coefficient (hard backed) (eq (28)):
+        alpha = 1 - np.abs(self.reflection_coefficient)**2
+        return alpha
     
     def _get_absorption_coefficient_hard_backed(self):
         """Calculates absorption coefficient (hard backed)
