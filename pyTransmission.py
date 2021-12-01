@@ -48,7 +48,7 @@ class Measurement(HasPrivateTraits):
     transmission_loss = Property()
 
     # Reflection coefficient (hard backed):
-    reflection_coefficient = Property()
+    reflection_coefficient_hard_backed = Property()
     
     # Absorption coefficient (hard backed):
     absorption_coefficient = Property()
@@ -249,7 +249,7 @@ class Measurement_E2611(Measurement):
         TL = 20*np.log10(np.absolute(1/self.transmission_coefficient))
         return TL
 
-    def _get_reflection_coefficient(self):
+    def _get_reflection_coefficient_hard_backed(self):
         """Calculates reflection coefficient (hard backed)
         See 8.5.5.3, eq (27)
 
@@ -278,7 +278,7 @@ class Measurement_E2611(Measurement):
         
 
         # Absorption coefficient (hard backed) (eq (28)):
-        alpha = 1 - np.abs(self.reflection_coefficient)**2
+        alpha = 1 - np.abs(self.reflection_coefficient_hard_backed)**2
         return alpha
     
     def _get_propagation_wavenumber(self):
