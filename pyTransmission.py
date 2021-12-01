@@ -54,7 +54,7 @@ class Measurement(HasPrivateTraits):
     reflection_coefficient_hard_backed = Property()
     
     # Absorption coefficient (hard backed):
-    absorption_coefficient = Property()
+    absorption_coefficient_hard_backed = Property()
     
     # Propagation wavenumber in material:
     propagation_wavenumber = Property()
@@ -284,7 +284,7 @@ class Measurement_E2611(Measurement):
                  (T[:, 0, 0] + (self.rho * self.c * T[:,1,0])))
         return R
     
-    def _get_absorption_coefficient(self):
+    def _get_absorption_coefficient_hard_backed(self):
         """Calculates absorption coefficient (hard backed)
         See 8.5.5.4, eq (28)
 
