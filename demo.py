@@ -21,13 +21,13 @@ calibration = Calib(from_file=join(calibpath, calibfile))
 soundfilepath = './Resources/'
 
 # filename of empty measurement with direct configuration:
-filename_direct = 'empty_direct.h5'
+filename_direct = 'empty_00_11_22_33_44_55.h5'
 #channels of switched mic and filenames of measurements with switched configurations
-filenames_switched = {1: 'empty_switched_1-0.h5',  # <- here 2nd mic (index 1) was switched w/ ref (index 0)
-                      2: 'empty_switched_2-0.h5',
-                      3: 'empty_switched_3-0.h5',
-                      4: 'empty_switched_4-0.h5',
-                      5: 'empty_switched_5-0.h5'}
+filenames_switched = {1: 'empty_01_10_22_33_44_55.h5',  # <- here 2nd mic (index 1) was switched w/ ref (index 0)
+                      2: 'empty_02_11_20_33_44_55.h5',
+                      3: 'empty_03_11_22_30_44_55.h5',
+                      4: 'empty_04_11_22_33_40_55.h5',
+                      5: 'empty_05_11_22_33_44_50.h5'}
 
 # reference channel 
 # important: The reference Channel has to be 0 for the amplitude/phase correction to work!:
