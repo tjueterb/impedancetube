@@ -51,7 +51,7 @@ overlap = '50%'
 cached = False
 
 # Parameters for plot:
-savePlot = True
+savePlot = False
 plotpath = './Plots'
 
 ##############################################################################
