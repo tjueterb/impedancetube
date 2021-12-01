@@ -19,7 +19,7 @@ class Measurement(HasPrivateTraits):
     Rect: l1 = 0.3, l2 = 0.8,  s1,s2 = 0.085 or 0.5
     circ: l1 = 0.2, l2 = 0.28, s1,s2 = 0.075 or 0.225
     '''
-    l1 = Float(0.3, desc='distance between beginning of speciman and mic 2')
+    l1 = Float(0.3, desc='distance between beginning of specimen and mic 2')
     l2 = Float(0.8, desc='distance between beginning of specimen and mic 3')
     s1 = Float(0.085,desc='Distance between mic 1 and 2 in m')
     s2 = Float(0.085,desc='Distance between mic 3 and 4 in m')
@@ -134,7 +134,7 @@ class Measurement_E2611(Measurement):
     # channels of the microphones in the given freq_data object
     ref_channel = Int(0, desc="Channel index of the reference mic")
     mic_channels = List([1, 2, 3, 4], minlen=4, maxlen=4,
-                        desc="Channel indices of mics in positions 1-4")
+                        desc="Channel indices of mics in positions 0-3")
     
     # The transfer function for all microphones:
     transfer_function = Property(
