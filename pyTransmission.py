@@ -129,10 +129,14 @@ class Measurement(HasPrivateTraits):
         """Calculates the wave number coefficients for all frequencies
         See 3.2: k = 2*pi*f / c
         
+        Update: Damping constant in Neper/Meter estimated to get a complex wave number 
+        (Makes virtually no difference)
+        
         Returns:
             [array]: size: (f x 1)
         """
-        k = 2 * np.pi * self.freq_data.fftfreq() / self.c
+        k = (2 * np.pi *         self.freq_data.fftfreq() + 
+             1j* 0.0194*(np.sqrt(self.freq_data.fftfreq()))/self.tube_d ) / self.c
         return k
 
     def _get_transfer_matrix_one_load(self):
