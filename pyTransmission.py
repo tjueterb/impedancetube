@@ -47,6 +47,9 @@ class Measurement(HasPrivateTraits):
     # Transmission loss:
     transmission_loss = Property()
 
+    # Reflection coefficient:
+    reflection_coefficient = Property()
+    
     # Reflection coefficient (hard backed):
     reflection_coefficient_hard_backed = Property()
     
@@ -249,6 +252,20 @@ class Measurement_E2611(Measurement):
         TL = 20*np.log10(np.absolute(1/self.transmission_coefficient))
         return TL
 
+    def _get_reflection_coefficient(self):
+        """Calculates reflection coefficient
+        See Song & Bolton (2000), eq. (9)
+
+        Returns:
+            [array]: reflection coefficient
+                     size: (f x 1), f: frequencies
+        """
+        T = self.transfer_matrix_one_load
+        with np.errstate(divide='ignore', invalid='ignore'):
+            R = (T[:,0,0] + T[:,0,1]/(self.rho*self.c) - self.rho*self.c * T[:,1,0] - T[:,1,1]) / \
+                (T[:,0,0] + T[:,0,1]/(self.rho*self.c) + self.rho*self.c * T[:,1,0] + T[:,1,1])
+        return R
+        
     def _get_reflection_coefficient_hard_backed(self):
         """Calculates reflection coefficient (hard backed)
         See 8.5.5.3, eq (27)
