@@ -25,16 +25,6 @@ class Measurement(HasPrivateTraits):
     s2 = Float(0.085,desc='Distance between mic 3 and 4 in m')
     d = Float(0.5, desc='length of test specimen (test tube section is 0.7m)')
 
-    # channels of the microphones in the given freq_data object
-    ref_channel = Int(0, desc="Channel index of the reference mic")
-    mic_channels = List([1, 2, 3, 4], minlen=4, maxlen=4,
-                        desc="Channel indices of mics in positions 1-4")
-    
-    # Amplitude and Phase correction Transfer function
-    H_c = Array()
-    #TODO: either Initialize with ones (only possible after freq_data shape is known)
-    #TODO: Or rewrite the calib class so the entire object can be handed to this class
-
     # Block size
     block_size = Delegate('freq_data')
 
@@ -50,13 +40,6 @@ class Measurement(HasPrivateTraits):
 
     # wave number vector:
     k = Property(depends_on=['freq_data'])
-
-    # The transfer function for all microphones:
-    transfer_function = Property(
-        desc='Transfer function between all mics and ref. mic (channel i_ref)')
-
-    # The transfer Matrix
-    transfer_matrix_one_load = Property(desc='Transfer Matrix for one load')
 
     # transmission coefficient:
     transmission_coefficient = Property()
@@ -100,12 +83,74 @@ class Measurement(HasPrivateTraits):
             (273.15 / (273.15 + self.temperature))
         return rho
 
+    def _get_k(self):
+        """Calculates the wave number coefficients for all frequencies
+        See 3.2: k = 2*pi*f / c
+        
+        Update: Damping constant in Neper/Meter estimated to get a complex wave number 
+        (Makes virtually no difference)
+        
+        Returns:
+            [array]: size: (f x 1)
+        """
+        k = (2 * np.pi *         self.freq_data.fftfreq() + 
+             1j* 0.0194*(np.sqrt(self.freq_data.fftfreq()))/self.tube_d ) / self.c
+        return k
+    
+    def _get_working_frequency_range(self):
+        """Calculates the lower and upper frequency limit of the tube. 
+        See 6.2 (eq. (1) and (2)) and 6.5.3 (eq. (3))
+
+        Returns:
+            tuple: lower and upper frequency limit
+        """
+        # distance between microphones:
+        s = min(self.s1, self.s2)
+        # Lower frequency limit:
+        # NOTE: in ISO 10534-2, 5% is recommended instead of 1%
+        f_lower = 0.05 * self.c / s
+
+        # Upper frequency limit due to modes:
+        if self.tube_shape == 'rect':
+            K = 0.5
+        elif self.tube_shape == 'circ':
+            K = 0.586
+
+        # eq. (2)
+        f_upper_modes = K * self.c / self.tube_d
+
+        # Upper frequency limit due to mic spacing (cf. 6.5.4):
+        s = max(self.s1, self.s2)
+        f_upper_spacing = 0.8 * self.c / (2 * s)
+
+        f_upper = min(f_upper_modes, f_upper_spacing)
+
+        return f_lower, f_upper
+    
+class Measurement_E2611(Measurement):
+    '''
+    Transfer Matrix Method following the E2611 Norm
+    '''
+    # channels of the microphones in the given freq_data object
+    ref_channel = Int(0, desc="Channel index of the reference mic")
+    mic_channels = List([1, 2, 3, 4], minlen=4, maxlen=4,
+                        desc="Channel indices of mics in positions 1-4")
+    
+    # The transfer function for all microphones:
+    transfer_function = Property(
+        desc='Transfer function between all mics and ref. mic (channel i_ref)')
+
+    # The transfer Matrix
+    transfer_matrix_one_load = Property(desc='Transfer Matrix for one load')
+    
+    # Amplitude and Phase correction Transfer function
+    H_c = Array()
+    #TODO: either Initialize with ones (only possible after freq_data shape is known)
+    #TODO: Or rewrite the calib class so the entire object can be handed to this class
+    
     def _get_transfer_function(self):
         """Calculates the transfer function for all microphones
         See 8.5.1 eq (15)
-
-        NOTE: Phase and amplitude correction transfer functions 
-              are not implemented yet
               
         Returns:
             [array]:    Transfer function for all microphones 
@@ -124,21 +169,7 @@ class Measurement(HasPrivateTraits):
         H_n_ref = H_n_ref / self.H_c
         
         return H_n_ref
-
-    def _get_k(self):
-        """Calculates the wave number coefficients for all frequencies
-        See 3.2: k = 2*pi*f / c
-        
-        Update: Damping constant in Neper/Meter estimated to get a complex wave number 
-        (Makes virtually no difference)
-        
-        Returns:
-            [array]: size: (f x 1)
-        """
-        k = (2 * np.pi *         self.freq_data.fftfreq() + 
-             1j* 0.0194*(np.sqrt(self.freq_data.fftfreq()))/self.tube_d ) / self.c
-        return k
-
+    
     def _get_transfer_matrix_one_load(self):
         """Calculates the one load transfer matrix 
         See 8.5.4.2
@@ -273,36 +304,7 @@ class Measurement(HasPrivateTraits):
         z = np.sqrt(T[:,0,1]/T[:,1,0])
         return z
     
-    def _get_working_frequency_range(self):
-        """Calculates the lower and upper frequency limit of the tube. 
-        See 6.2 (eq. (1) and (2)) and 6.5.3 (eq. (3))
-
-        Returns:
-            tuple: lower and upper frequency limit
-        """
-        # distance between microphones:
-        s = min(self.s1, self.s2)
-        # Lower frequency limit:
-        # NOTE: in ISO 10534-2, 5% is recommended instead of 1%
-        f_lower = 0.05 * self.c / s
-
-        # Upper frequency limit due to modes:
-        if self.tube_shape == 'rect':
-            K = 0.5
-        elif self.tube_shape == 'circ':
-            K = 0.586
-
-        # eq. (2)
-        f_upper_modes = K * self.c / self.tube_d
-
-        # Upper frequency limit due to mic spacing (cf. 6.5.4):
-        s = max(self.s1, self.s2)
-        f_upper_spacing = 0.8 * self.c / (2 * s)
-
-        f_upper = min(f_upper_modes, f_upper_spacing)
-
-        return f_lower, f_upper
-class MicSwitchCalib(HasPrivateTraits):
+class MicSwitchCalib_E2611(HasPrivateTraits):
     
     #: The :class:`~acoular.spectra.PowerSpectra` object that provides the csm.
     freq_data = Trait(PowerSpectra,

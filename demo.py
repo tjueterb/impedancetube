@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from acoular import Calib, TimeSamples, PowerSpectra
 
-from pyTransmission import Measurement, MicSwitchCalib
+from pyTransmission import Measurement_E2611, MicSwitchCalib_E2611
 
 ##############################################################################
 # USER INPUT:
@@ -86,10 +86,10 @@ for i in filenames_switched:
                                       cached=freq_data.cached)
 
     # calculate amplitude/phase correction for switched channel:
-    calib = MicSwitchCalib(freq_data=freq_data,
-                           freq_data_switched=freq_data_switched,
-                           ref_channel=0,
-                           test_channel=i)
+    calib = MicSwitchCalib_E2611(freq_data=freq_data,
+                                 freq_data_switched=freq_data_switched,
+                                 ref_channel=0,
+                                 test_channel=i)
 
     # store result:
     H_c[:, i] = calib.H_c
@@ -120,7 +120,7 @@ for filename_measurement in filenames_measurement:
             s1 = s2 = 0.5 # distance between mics
             mic_channels = mic_channels_wide
 
-        msm = Measurement(freq_data=freq_data,
+        msm = Measurement_E2611(freq_data=freq_data,
                         s1=s1,  # distance between mic #1 and #2
                         s2=s2,  # distance between mic #3 and #4
                         ref_channel=ref_channel,  # index of the reference microphone
