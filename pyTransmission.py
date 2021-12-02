@@ -433,12 +433,12 @@ class Measurement_Cottbus(Measurement):
         H23_unkorr = Sxy_23/Sxx_23    #Übertragungsfunktion der Kanäle 3 und 4 aus Messung (m) --> unkorrigiertes Signal   
 
         # Phase/Amplitude corrected transfer functions:
-        Hkorr_01, Hkorr_02, Hkorr_23 = self.H_c
+        Hkorr_01, Hkorr_02, Hkorr_23 = self.H_c[:,0], self.H_c[:,1], self.H_c[:,2]
         H01 = H01_unkorr/Hkorr_01
         H02 = H02_unkorr/Hkorr_02
         H23 = H23_unkorr/Hkorr_23
         
-        H = np.empty(csm.shape[0, 3], dtype=complex)  # create empty array
+        H = np.empty((csm.shape[0],3), dtype=complex)  # create empty array
         H[:,0] = H01
         H[:,1] = H02
         H[:,2] = H23
@@ -456,9 +456,9 @@ class Measurement_Cottbus(Measurement):
                      size: (f x 2 x 2), f: frequencies 
         """         
               
-        H12 = self.transfer_function[0]
-        H13 = self.transfer_function[1]
-        H34 = self.transfer_function[2]
+        H12 = self.transfer_function[:,0]
+        H13 = self.transfer_function[:,1]
+        H34 = self.transfer_function[:,2]
         
         x1 = self.l1 + self.s1
         x2 = self.l1
