@@ -465,15 +465,17 @@ class Measurement_Cottbus(Measurement):
         x3 = self.l2
         x4 = self.l2 + self.s2
         
-        # Ermittlung von Reflektions- und Transmissionsfaktor (Vgl. Bolton/Song und Extrablatt)
-        E = (1j*(np.exp(1j*self.k*x2)-H12*np.exp(1j*self.k*x1))) / \
-            (2*np.sin(self.k*(x1-x2)))
-        F = (1j*(H12*np.exp(-1*1j*self.k*x1)-np.exp(-1*1j*self.k*x2))) / \
-            (2*np.sin(self.k*(x1-x2)))
-        G = (1j*(np.exp(1j*self.k*x4)-H34*np.exp(1j*self.k*x3)))/ \
-            (2*np.sin(self.k*(x3-x4)))
-        H = (1j*(H34*np.exp(-1*1j*self.k*x3)-np.exp(-1*1j*self.k*x4))) / \
-            (2*np.sin(self.k*(x3-x4)))
+        # Disable divide by zero warning because first entry of k is always 0
+        with np.errstate(divide='ignore', invalid='ignore'):
+            # Ermittlung von Reflektions- und Transmissionsfaktor (Vgl. Bolton/Song und Extrablatt)
+            E = (1j*(np.exp(1j*self.k*x2)-H12*np.exp(1j*self.k*x1))) / \
+                (2*np.sin(self.k*(x1-x2)))
+            F = (1j*(H12*np.exp(-1*1j*self.k*x1)-np.exp(-1*1j*self.k*x2))) / \
+                (2*np.sin(self.k*(x1-x2)))
+            G = (1j*(np.exp(1j*self.k*x4)-H34*np.exp(1j*self.k*x3)))/ \
+                (2*np.sin(self.k*(x3-x4)))
+            H = (1j*(H34*np.exp(-1*1j*self.k*x3)-np.exp(-1*1j*self.k*x4))) / \
+                (2*np.sin(self.k*(x3-x4)))
         
         P0 = E + F
         V0 = (E-F)/(self.rho*self.c)
