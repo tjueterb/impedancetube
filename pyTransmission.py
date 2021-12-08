@@ -703,21 +703,21 @@ class Measurement_Cottbus_OG(Measurement):
         H34 = H34_unkorr/Hkorr_34
 
         # Ermittlung von Reflektions- und Transmissionsfaktor (Vgl. Bolton/Song und Extrablatt)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            E = (1j*(exp(1j*k*x2)-H12*exp(1j*k*x1)))/(2*sin(k*(x1-x2)))
+            F = (1j*(H12*exp(-1*1j*k*x1)-exp(-1*1j*k*x2)))/(2*sin(k*(x1-x2)))
+            G = (1j*(exp(1j*k*x4)-H34*exp(1j*k*x3)))/(2*sin(k*(x3-x4)))
+            H = (1j*(H34*exp(-1*1j*k*x3)-exp(-1*1j*k*x4)))/(2*sin(k*(x3-x4)))
 
-        E = (1j*(exp(1j*k*x2)-H12*exp(1j*k*x1)))/(2*sin(k*(x1-x2)))
-        F = (1j*(H12*exp(-1*1j*k*x1)-exp(-1*1j*k*x2)))/(2*sin(k*(x1-x2)))
-        G = (1j*(exp(1j*k*x4)-H34*exp(1j*k*x3)))/(2*sin(k*(x3-x4)))
-        H = (1j*(H34*exp(-1*1j*k*x3)-exp(-1*1j*k*x4)))/(2*sin(k*(x3-x4)))
+            P0 = E + F
+            V0 = (E-F)/(rho*c)
+            Pd = G*exp(-1*1j*k*d)+H*exp(1j*k*d)
+            Vd = (G*exp(-1*1j*k*d)-H*exp(1j*k*d))/(rho*c)
 
-        P0 = E + F
-        V0 = (E-F)/(rho*c)
-        Pd = G*exp(-1*1j*k*d)+H*exp(1j*k*d)
-        Vd = (G*exp(-1*1j*k*d)-H*exp(1j*k*d))/(rho*c)
-
-        T11 = ((H13*Pd*Vd)+(P0*V0/H13))/((P0*Vd)+(Pd*V0))
-        T12 = ((P0*P0/H13)-(H13*Pd*Pd))/((P0*Vd)+(Pd*V0))
-        T21 = ((V0*V0/H13)-(H13*Vd*Vd))/((P0*Vd)+(Pd*V0))
-        T22 = T11
+            T11 = ((H13*Pd*Vd)+(P0*V0/H13))/((P0*Vd)+(Pd*V0))
+            T12 = ((P0*P0/H13)-(H13*Pd*Pd))/((P0*Vd)+(Pd*V0))
+            T21 = ((V0*V0/H13)-(H13*Vd*Vd))/((P0*Vd)+(Pd*V0))
+            T22 = T11
 
         # Transfer Matrix:
         T = np.zeros(shape=(H12.shape[0], 2, 2), dtype=complex)
