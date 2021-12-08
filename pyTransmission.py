@@ -634,11 +634,11 @@ class Measurement_Cottbus_OG(Measurement):
         '''transmission loss directly'''
 
         #Anpassung der Größen an Song und Bolton
-        x1 = -1 * (self.l1+self.s1)                                 #läuft in negative x-Richtung
-        x2 = -1 * self.l1                                 #läuft in negative x-Richtung
-        d = self.d
+        x1 = -1 * (self.l1+self.s1)                 #läuft in negative x-Richtung
+        x2 = -1 * self.l1                           #läuft in negative x-Richtung
         x3 = self.l2
         x4 = self.l2 + self.s2
+        d  = self.d
 
         c=self.c
         rho = self.rho
