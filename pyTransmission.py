@@ -632,13 +632,6 @@ class Measurement_Cottbus_OG(Measurement):
     
     def _get_transmission_loss(self):
         '''transmission loss directly'''
-        mic0_pos = 0.387
-        mic1_pos = 0.3
-        mic2_pos = 0.8
-        mic3_pos = 0.885          # Abstand zwischen Prüfling und am weitesten enfernten Mikrofon Richtung schallhartem Ende --> Mic3
-        D = 0.1                     # Durchmesser des Messrohrs
-        # xmin=100
-        # xmax=2001
 
         #Anpassung der Größen an Song und Bolton
         x1 = -1 * (self.l1+self.s1)                                 #läuft in negative x-Richtung
@@ -705,9 +698,6 @@ class Measurement_Cottbus_OG(Measurement):
         H13 = H13_unkorr/Hkorr_13
         H34 = H34_unkorr/Hkorr_34
 
-        # k0im=0.0194*(np.sqrt(freq))/(cT*D)  # Schätzung der Dämpfungskonstante in Neper/Meter (Gl. (A.18))
-        # k0re=2.*np.pi*freq/cT
-        # k0=k0re+k0im*1j
         k0 = self.k
         # Ermittlung von Reflektions- und Transmissionsfaktor (Vgl. Bolton/Song und Extrablatt)
 
