@@ -1,7 +1,9 @@
 # This defines a class for transmission factor measurement
 
+from acoular.sources import TimeSamples
 from acoular.spectra import PowerSpectra
 import numpy as np
+from numpy import exp, sin, pi, sqrt
 from traits.api import HasPrivateTraits, Property, Float, Trait, Delegate, Int, List, Array
 
 
@@ -610,3 +612,129 @@ class MicSwitchCalib_Cottbus(HasPrivateTraits):
         H_c = np.sqrt( H_a * H_b )
         
         return H_c
+
+class Measurement_Cottbus_OG(Measurement):
+    ''' 
+    Measurement with Transfer Matrix Method Cottbus style.
+    '''
+    # Calibration Data:
+    freq_data_00_11_22_33 = Trait(PowerSpectra,
+        desc = 'PowerSpectra Object containing empty measurement')
+    freq_data_01_10_23_32 = Trait(PowerSpectra,
+        desc = 'PowerSpectra Object containing empty measurement with mics 0/1, 2/3 switched')
+    freq_data_02_11_20_33 = Trait(PowerSpectra,
+        desc = 'PowerSpectra Object containing empty measurement with mics 0/2 switched')
+    
+    
+    # channels of the microphones in the given freq_data object
+    mic_channels = List([1, 2, 3, 4], minlen=4, maxlen=4,
+                        desc="Channel indices of mics in positions 0-3")
+    
+    def _get_transmission_loss(self):
+        '''transmission loss directly'''
+        mic0_pos = 0.387
+        mic1_pos = 0.3
+        mic2_pos = 0.8
+        mic3_pos = 0.885          # Abstand zwischen Prüfling und am weitesten enfernten Mikrofon Richtung schallhartem Ende --> Mic3
+        D = 0.1                     # Durchmesser des Messrohrs
+        # xmin=100
+        # xmax=2001
+
+        #Anpassung der Größen an Song und Bolton
+        x1 = -1 * (self.l1+self.s1)                                 #läuft in negative x-Richtung
+        x2 = -1 * self.l1                                 #läuft in negative x-Richtung
+        d = self.d
+        x3 = self.l2
+        x4 = self.l2 + self.s2
+
+        cT=self.c
+        #Luftdichte
+        roh = self.rho
+        
+        # Kalibrierungsdatei 1
+        f = self.freq_data_00_11_22_33
+        Sxx_12 = f.csm[:,self.mic_channels[0],self.mic_channels[0]]     #Autospektraldichte
+        Sxy_12 = f.csm[:,self.mic_channels[0],self.mic_channels[1]]     #Kreuzspektraldichte
+        Ha12 = Sxy_12/Sxx_12      #Übertragungsfunktion der Messung 00 und 11 --> Übertragungsfunktion des Prüflings im unkorrigierten Zustand
+
+        Sxx_13 = Sxx_12           #Autospektraldichte
+        Sxy_13 = f.csm[:,self.mic_channels[0],self.mic_channels[2]]     #Kreuzspektraldichte
+        Ha13 = Sxy_13/Sxx_13      #Übertragungsfunktion der Messung 00 und 22 --> Übertragungsfunktion des Prüflings im unkorrigierten Zustand
+
+        Sxx_34 = f.csm[:,self.mic_channels[2],self.mic_channels[2]]     #Autospektraldichte
+        Sxy_34 = f.csm[:,self.mic_channels[2],self.mic_channels[3]]     #Kreuzspektraldichte
+        Ha34 = Sxy_34/Sxx_34      #Übertragungsfunktion der Messung 22 und 33 --> Übertragungsfunktion des Prüflings im unkorrigierten Zustand
+
+        # Kalibrierungsdatei 2
+        f = self.freq_data_01_10_23_32
+        Sxx_21 = f.csm[:,self.mic_channels[1],self.mic_channels[1]]
+        Sxy_21 = f.csm[:,self.mic_channels[1],self.mic_channels[0]]
+        Hb12 = Sxy_21/Sxx_21          #Übertragungsfunktion der Messung 01 und 10
+
+        Sxx_43 = f.csm[:,self.mic_channels[3],self.mic_channels[3]]
+        Sxy_43 = f.csm[:,self.mic_channels[3],self.mic_channels[2]]
+        Hb34 = Sxy_43/Sxx_43          #Übertragungsfunktion der Messung 23 und 32
+
+        # Kalibrierungsdatei 3
+        f = self.freq_data_02_11_20_33
+        Sxx_31 = f.csm[:,self.mic_channels[2],self.mic_channels[2]]
+        Sxy_31 = f.csm[:,self.mic_channels[2],self.mic_channels[0]]
+        Hb13 = Sxy_31/Sxx_31          #Übertragungsfunktion der Messung 02 und 20
+
+        # Messdatei
+        f = self.freq_data
+        Sxx_12_m = f.csm[:,self.mic_channels[0],self.mic_channels[0]]         #Autospektraldichte 
+        Sxy_12_m = f.csm[:,self.mic_channels[0],self.mic_channels[1]]         #Kreuzspektraldichte
+        H12_unkorr = Sxy_12_m/Sxx_12_m  #Übertragungsfunktion der Kanäle 0 und 1 aus Messung (m) --> unkorrigiertes Signal
+
+        Sxx_13_m = Sxx_12_m             #Autospektraldichte
+        Sxy_13_m = f.csm[:,self.mic_channels[0],self.mic_channels[2]]         #Kreuzspektraldichte
+        H13_unkorr = Sxy_13_m/Sxx_13_m  #Übertragungsfunktion der Kanäle 0 und 2 aus Messung (m) --> unkorrigiertes Signal  
+
+        Sxx_34_m = f.csm[:,self.mic_channels[2],self.mic_channels[2]]           #Autospektraldichte
+        Sxy_34_m = f.csm[:,self.mic_channels[2],self.mic_channels[3]]           #Kreuzspektraldichte
+        H34_unkorr = Sxy_34_m/Sxx_34_m    #Übertragungsfunktion der Kanäle 3 und 4 aus Messung (m) --> unkorrigiertes Signal   
+
+        # Korrekturfunktionen
+        Hkorr_12 = np.sqrt(Ha12/Hb12)        #sqrt(abs(Ha/Hb))*exp(1j*(0.5*(angle(Ha)-angle(Hb))))
+        Hkorr_13 = np.sqrt(Ha13/Hb13)
+        Hkorr_34 = np.sqrt(Ha34/Hb34)    
+
+        #korrigierte Übertragungsfunktionen
+        H12 = H12_unkorr/Hkorr_12
+        H13 = H13_unkorr/Hkorr_13
+        H34 = H34_unkorr/Hkorr_34
+
+        # k0im=0.0194*(np.sqrt(freq))/(cT*D)  # Schätzung der Dämpfungskonstante in Neper/Meter (Gl. (A.18))
+        # k0re=2.*np.pi*freq/cT
+        # k0=k0re+k0im*1j
+        k0 = self.k
+        # Ermittlung von Reflektions- und Transmissionsfaktor (Vgl. Bolton/Song und Extrablatt)
+
+        E = (1j*(exp(1j*k0*x2)-H12*exp(1j*k0*x1)))/(2*sin(k0*(x1-x2)))
+        F = (1j*(H12*exp(-1*1j*k0*x1)-exp(-1*1j*k0*x2)))/(2*sin(k0*(x1-x2)))
+        G = (1j*(exp(1j*k0*x4)-H34*exp(1j*k0*x3)))/(2*sin(k0*(x3-x4)))
+        H = (1j*(H34*exp(-1*1j*k0*x3)-exp(-1*1j*k0*x4)))/(2*sin(k0*(x3-x4)))
+
+        P0 = E + F
+        V0 = (E-F)/(roh*cT)
+        Pd = G*exp(-1*1j*k0*d)+H*exp(1j*k0*d)
+        Vd = (G*exp(-1*1j*k0*d)-H*exp(1j*k0*d))/(roh*cT)
+
+        T11 = ((H13*Pd*Vd)+(P0*V0/H13))/((P0*Vd)+(Pd*V0))
+        T12 = ((P0*P0/H13)-(H13*Pd*Pd))/((P0*Vd)+(Pd*V0))
+        T21 = ((V0*V0/H13)-(H13*Vd*Vd))/((P0*Vd)+(Pd*V0))
+        T22 = T11
+
+        Za = sqrt(T12/T21)
+
+        Ta = (2*exp(1j*k0*d))/(T11+(T12/(roh*cT))+((roh*cT)*T21)+T22)
+        Ra = (T11+(T12/(roh*cT))-((roh*cT)*T21)-T22)/(T11+(T12/(roh*cT))+((roh*cT)*T21)+T22)
+
+        # Ermittlung von Reflektions-, Transmissions-, Absorptionsgrad und Schalldämmaß sowie Test auf Leistungsgleichgewicht
+
+        t_grad=abs(Ta)**2
+        schall_dm=20*np.log10(1/t_grad)
+        return schall_dm
+
+    
