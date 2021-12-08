@@ -730,23 +730,115 @@ class Measurement_Cottbus_OG(Measurement):
         
     def _get_transmission_coefficient(self):
         """Calculates transmission coefficient
+        See 8.5.5.1, eq (25)
 
         Returns:
             [array]: Transmission coefficient
-                    size: (f x 1), f: frequencies
+                     size: (f x 1), f: frequencies
         """
         # Transfer Matrix:
         T = self.transfer_matrix_one_load
-        T11 = T[:,0,0]
-        T12 = T[:,0,1]
-        T21 = T[:,1,0]
-        T22 = T[:,1,1]
 
-        # Transmission Coefficient (anechoic backed):
+        # Transmission Coefficient (anechoic backed) (eq (25)):
         # Disable divide by zero warning because first entry of k is always 0
         with np.errstate(divide='ignore', invalid='ignore'):
-            tl = (2*exp(1j*self.k*self.d)) / (T11+(T12/(self.rho*self.c))+((self.rho*self.c)*T21)+T22)
-        return tl
-    
+            t = (2 * np.exp(1j*self.k*self.d) /
+                 (T[:, 0, 0] + 
+                  T[:, 0, 1] / (self.rho * self.c) +
+                  T[:, 1, 0] * (self.rho * self.c) + 
+                  T[:, 1, 1]))
+        return t
+
     def _get_transmission_loss(self):
-        return 20*np.log10(1/self.transmission_coefficient)
+        """Calculates Normal Incidence Transmission Loss
+        See 8.5.5.2, eq (26)
+
+        Returns:
+            [array]: Transmission loss
+                     size: (f x 1), f: frequencies
+        """
+        TL = 20*np.log10(np.absolute(1/self.transmission_coefficient))
+        return TL
+
+    def _get_reflection_coefficient(self):
+        """Calculates reflection coefficient
+        See Song & Bolton (2000), eq. (9)
+
+        Returns:
+            [array]: reflection coefficient
+                     size: (f x 1), f: frequencies
+        """
+        T = self.transfer_matrix_one_load
+        with np.errstate(divide='ignore', invalid='ignore'):
+            R = (T[:,0,0] + T[:,0,1]/(self.rho*self.c) - self.rho*self.c * T[:,1,0] - T[:,1,1]) / \
+                (T[:,0,0] + T[:,0,1]/(self.rho*self.c) + self.rho*self.c * T[:,1,0] + T[:,1,1])
+        return R
+        
+    def _get_reflection_coefficient_hard_backed(self):
+        """Calculates reflection coefficient (hard backed)
+        See 8.5.5.3, eq (27)
+
+        Returns:
+            [array]: reflection coefficient
+                     size: (f x 1), f: frequencies
+        """
+        # Transfer Matrix:
+        T = self.transfer_matrix_one_load
+
+        # Reflection coefficient (hard backed) (eq (27)):
+        # Disable divide by zero warning because first entry of k is always 0
+        with np.errstate(divide='ignore', invalid='ignore'):
+            R = ((T[:, 0, 0] - (self.rho * self.c * T[:,1,0])) / 
+                 (T[:, 0, 0] + (self.rho * self.c * T[:,1,0])))
+        return R
+    
+    def _get_absorption_coefficient(self):
+        """Calculates absorption coefficient (anechoic backed)
+        See 8.5.5.4, eq (28)
+
+        Returns:
+            [array]: absorption coefficient
+                     size: (f x 1), f: frequencies
+        """
+        
+
+        # Absorption coefficient (hard backed) (eq (28)):
+        alpha = 1 - np.abs(self.reflection_coefficient)**2
+        return alpha
+    
+    def _get_absorption_coefficient_hard_backed(self):
+        """Calculates absorption coefficient (hard backed)
+        See 8.5.5.4, eq (28)
+
+        Returns:
+            [array]: absorption coefficient
+                     size: (f x 1), f: frequencies
+        """
+        
+
+        # Absorption coefficient (hard backed) (eq (28)):
+        alpha = 1 - np.abs(self.reflection_coefficient_hard_backed)**2
+        return alpha
+    
+    def _get_propagation_wavenumber(self):
+        """Calculates propagation_wavenumber in the material
+        See 8.5.5.5, eq (29)
+
+        Returns:
+            [array]: propagation wavenumber
+                     size: (f x 1), f: frequencies
+        """
+        # Disable divide by zero warning because first entry of k is always 0
+        with np.errstate(divide='ignore', invalid='ignore'):
+            return 1 / self.d * np.arccos( self.transfer_matrix_one_load[:,0,0] )
+    
+    def _get_z(self):
+        """Calculate Characteristic Impedance in material
+        See 8.5.5.6 (eq. (30))
+        Returns:
+            [array]: Characteristic Impedance
+                     size: (f x 1), f: frequencies
+        """
+        T = self.transfer_matrix_one_load
+        z = np.sqrt(T[:,0,1]/T[:,1,0])
+        return z
