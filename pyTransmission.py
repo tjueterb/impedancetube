@@ -630,7 +630,10 @@ class Measurement_Cottbus_OG(Measurement):
     mic_channels = List([1, 2, 3, 4], minlen=4, maxlen=4,
                         desc="Channel indices of mics in positions 0-3")
     
-    def _get_transmission_loss(self):
+    # The transfer Matrix
+    transfer_matrix_one_load = Property(desc='Transfer Matrix for one load')
+    
+    def _get_transfer_matrix_one_load(self):
         '''transmission loss directly'''
 
         #Anpassung der Größen an Song und Bolton
@@ -716,15 +719,34 @@ class Measurement_Cottbus_OG(Measurement):
         T21 = ((V0*V0/H13)-(H13*Vd*Vd))/((P0*Vd)+(Pd*V0))
         T22 = T11
 
-        Za = sqrt(T12/T21)
+        # Transfer Matrix:
+        T = np.zeros(shape=(H12.shape[0], 2, 2), dtype=complex)
+        T[:,0,0] = T11
+        T[:,0,1] = T12
+        T[:,1,0] = T21
+        T[:,1,1] = T22
 
-        Ta = (2*exp(1j*k*d))/(T11+(T12/(rho*c))+((rho*c)*T21)+T22)
-        Ra = (T11+(T12/(rho*c))-((rho*c)*T21)-T22)/(T11+(T12/(rho*c))+((rho*c)*T21)+T22)
+        return T
+        
+    def _get_transmission_coefficient(self):
+        """Calculates transmission coefficient
 
-        # Ermittlung von Reflektions-, Transmissions-, Absorptionsgrad und Schalldämmaß sowie Test auf Leistungsgleichgewicht
+        Returns:
+            [array]: Transmission coefficient
+                    size: (f x 1), f: frequencies
+        """
+        # Transfer Matrix:
+        T = self.transfer_matrix_one_load
+        T11 = T[:,0,0]
+        T12 = T[:,0,1]
+        T21 = T[:,1,0]
+        T22 = T[:,1,1]
 
-        t_grad=abs(Ta)**2
-        schall_dm=20*np.log10(1/t_grad)
-        return schall_dm
-
+        # Transmission Coefficient (anechoic backed):
+        # Disable divide by zero warning because first entry of k is always 0
+        with np.errstate(divide='ignore', invalid='ignore'):
+            tl = (2*exp(1j*self.k*self.d)) / (T11+(T12/(self.rho*self.c))+((self.rho*self.c)*T21)+T22)
+        return tl
     
+    def _get_transmission_loss(self):
+        return 20*np.log10(1/self.transmission_coefficient)
