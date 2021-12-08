@@ -616,7 +616,7 @@ class Measurement_Cottbus_OG(Measurement):
     
 class Measurement_Cottbus_TJ(Measurement):
     ''' 
-    Measurement with Transfer Matrix Method Cottbus style.
+    Measurement with Transfer Matrix Method Cottbus style, but with my own interpretation of csm indices:
     '''
     # Calibration Data:
     freq_data_00_11_22_33 = Trait(PowerSpectra,
@@ -652,45 +652,45 @@ class Measurement_Cottbus_TJ(Measurement):
         # Kalibrierungsdatei 1
         f = self.freq_data_00_11_22_33
         Sxx_12 = f.csm[:,self.mic_channels[0],self.mic_channels[0]]     #Autospektraldichte
-        Sxy_12 = f.csm[:,self.mic_channels[0],self.mic_channels[1]]     #Kreuzspektraldichte
+        Sxy_12 = f.csm[:,self.mic_channels[1],self.mic_channels[0]]     #Kreuzspektraldichte
         Ha12 = Sxy_12/Sxx_12      #Übertragungsfunktion der Messung 00 und 11 --> Übertragungsfunktion des Prüflings im unkorrigierten Zustand
 
         Sxx_13 = Sxx_12           #Autospektraldichte
-        Sxy_13 = f.csm[:,self.mic_channels[0],self.mic_channels[2]]     #Kreuzspektraldichte
+        Sxy_13 = f.csm[:,self.mic_channels[2],self.mic_channels[0]]     #Kreuzspektraldichte
         Ha13 = Sxy_13/Sxx_13      #Übertragungsfunktion der Messung 00 und 22 --> Übertragungsfunktion des Prüflings im unkorrigierten Zustand
 
         Sxx_34 = f.csm[:,self.mic_channels[2],self.mic_channels[2]]     #Autospektraldichte
-        Sxy_34 = f.csm[:,self.mic_channels[2],self.mic_channels[3]]     #Kreuzspektraldichte
+        Sxy_34 = f.csm[:,self.mic_channels[3],self.mic_channels[2]]     #Kreuzspektraldichte
         Ha34 = Sxy_34/Sxx_34      #Übertragungsfunktion der Messung 22 und 33 --> Übertragungsfunktion des Prüflings im unkorrigierten Zustand
 
         # Kalibrierungsdatei 2
         f = self.freq_data_01_10_23_32
         Sxx_21 = f.csm[:,self.mic_channels[1],self.mic_channels[1]]
-        Sxy_21 = f.csm[:,self.mic_channels[1],self.mic_channels[0]]
+        Sxy_21 = f.csm[:,self.mic_channels[0],self.mic_channels[1]]
         Hb12 = Sxy_21/Sxx_21          #Übertragungsfunktion der Messung 01 und 10
 
         Sxx_43 = f.csm[:,self.mic_channels[3],self.mic_channels[3]]
-        Sxy_43 = f.csm[:,self.mic_channels[3],self.mic_channels[2]]
+        Sxy_43 = f.csm[:,self.mic_channels[2],self.mic_channels[3]]
         Hb34 = Sxy_43/Sxx_43          #Übertragungsfunktion der Messung 23 und 32
 
         # Kalibrierungsdatei 3
         f = self.freq_data_02_11_20_33
         Sxx_31 = f.csm[:,self.mic_channels[2],self.mic_channels[2]]
-        Sxy_31 = f.csm[:,self.mic_channels[2],self.mic_channels[0]]
+        Sxy_31 = f.csm[:,self.mic_channels[0],self.mic_channels[2]]
         Hb13 = Sxy_31/Sxx_31          #Übertragungsfunktion der Messung 02 und 20
 
         # Messdatei
         f = self.freq_data
         Sxx_12_m = f.csm[:,self.mic_channels[0],self.mic_channels[0]]         #Autospektraldichte 
-        Sxy_12_m = f.csm[:,self.mic_channels[0],self.mic_channels[1]]         #Kreuzspektraldichte
+        Sxy_12_m = f.csm[:,self.mic_channels[1],self.mic_channels[0]]         #Kreuzspektraldichte
         H12_unkorr = Sxy_12_m/Sxx_12_m  #Übertragungsfunktion der Kanäle 0 und 1 aus Messung (m) --> unkorrigiertes Signal
 
         Sxx_13_m = Sxx_12_m             #Autospektraldichte
-        Sxy_13_m = f.csm[:,self.mic_channels[0],self.mic_channels[2]]         #Kreuzspektraldichte
+        Sxy_13_m = f.csm[:,self.mic_channels[2],self.mic_channels[0]]         #Kreuzspektraldichte
         H13_unkorr = Sxy_13_m/Sxx_13_m  #Übertragungsfunktion der Kanäle 0 und 2 aus Messung (m) --> unkorrigiertes Signal  
 
         Sxx_34_m = f.csm[:,self.mic_channels[2],self.mic_channels[2]]           #Autospektraldichte
-        Sxy_34_m = f.csm[:,self.mic_channels[2],self.mic_channels[3]]           #Kreuzspektraldichte
+        Sxy_34_m = f.csm[:,self.mic_channels[3],self.mic_channels[2]]           #Kreuzspektraldichte
         H34_unkorr = Sxy_34_m/Sxx_34_m    #Übertragungsfunktion der Kanäle 3 und 4 aus Messung (m) --> unkorrigiertes Signal   
 
         # Korrekturfunktionen
