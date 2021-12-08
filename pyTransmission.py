@@ -384,9 +384,9 @@ class MicSwitchCalib_E2611(HasPrivateTraits):
         
         return H_c
     
-class Measurement_Cottbus_OG(Measurement):
+class Measurement_Cottbusstyle_OG(Measurement):
     ''' 
-    Measurement with Transfer Matrix Method Cottbus style.
+    Measurement with Transfer Matrix Method Cottbus style (with original indexing).
     '''
     # Calibration Data:
     freq_data_00_11_22_33 = Trait(PowerSpectra,
@@ -614,9 +614,9 @@ class Measurement_Cottbus_OG(Measurement):
         z = np.sqrt(T[:,0,1]/T[:,1,0])
         return z
     
-class Measurement_Cottbus_TJ(Measurement):
+class Measurement_CottbusStyle(Measurement):
     ''' 
-    Measurement with Transfer Matrix Method Cottbus style, but with my own interpretation of csm indices:
+    Measurement with Transfer Matrix Method Cottbus style, but with fixed csm indexing:
     '''
     # Calibration Data:
     freq_data_00_11_22_33 = Trait(PowerSpectra,
