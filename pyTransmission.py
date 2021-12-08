@@ -640,7 +640,7 @@ class Measurement_Cottbus_OG(Measurement):
         x3 = self.l2
         x4 = self.l2 + self.s2
 
-        cT=self.c
+        c=self.c
         #Luftdichte
         roh = self.rho
         
@@ -707,9 +707,9 @@ class Measurement_Cottbus_OG(Measurement):
         H = (1j*(H34*exp(-1*1j*k0*x3)-exp(-1*1j*k0*x4)))/(2*sin(k0*(x3-x4)))
 
         P0 = E + F
-        V0 = (E-F)/(roh*cT)
+        V0 = (E-F)/(roh*c)
         Pd = G*exp(-1*1j*k0*d)+H*exp(1j*k0*d)
-        Vd = (G*exp(-1*1j*k0*d)-H*exp(1j*k0*d))/(roh*cT)
+        Vd = (G*exp(-1*1j*k0*d)-H*exp(1j*k0*d))/(roh*c)
 
         T11 = ((H13*Pd*Vd)+(P0*V0/H13))/((P0*Vd)+(Pd*V0))
         T12 = ((P0*P0/H13)-(H13*Pd*Pd))/((P0*Vd)+(Pd*V0))
@@ -718,8 +718,8 @@ class Measurement_Cottbus_OG(Measurement):
 
         Za = sqrt(T12/T21)
 
-        Ta = (2*exp(1j*k0*d))/(T11+(T12/(roh*cT))+((roh*cT)*T21)+T22)
-        Ra = (T11+(T12/(roh*cT))-((roh*cT)*T21)-T22)/(T11+(T12/(roh*cT))+((roh*cT)*T21)+T22)
+        Ta = (2*exp(1j*k0*d))/(T11+(T12/(roh*c))+((roh*c)*T21)+T22)
+        Ra = (T11+(T12/(roh*c))-((roh*c)*T21)-T22)/(T11+(T12/(roh*c))+((roh*c)*T21)+T22)
 
         # Ermittlung von Reflektions-, Transmissions-, Absorptionsgrad und Schalldämmaß sowie Test auf Leistungsgleichgewicht
 
