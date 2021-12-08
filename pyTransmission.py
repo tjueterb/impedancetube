@@ -384,237 +384,7 @@ class MicSwitchCalib_E2611(HasPrivateTraits):
         
         return H_c
     
-class Measurement_Cottbusstyle_OG(Measurement):
-    ''' 
-    Measurement with Transfer Matrix Method Cottbus style (with original indexing).
-    '''
-    # Calibration Data:
-    freq_data_00_11_22_33 = Trait(PowerSpectra,
-        desc = 'PowerSpectra Object containing empty measurement')
-    freq_data_01_10_23_32 = Trait(PowerSpectra,
-        desc = 'PowerSpectra Object containing empty measurement with mics 0/1, 2/3 switched')
-    freq_data_02_11_20_33 = Trait(PowerSpectra,
-        desc = 'PowerSpectra Object containing empty measurement with mics 0/2 switched')
-    
-    
-    # channels of the microphones in the given freq_data object
-    mic_channels = List([1, 2, 3, 4], minlen=4, maxlen=4,
-                        desc="Channel indices of mics in positions 0-3")
-    
-    # The transfer Matrix
-    transfer_matrix_one_load = Property(desc='Transfer Matrix for one load')
-    
-    def _get_transfer_matrix_one_load(self):
-        '''transmission loss directly'''
-
-        #Anpassung der Größen an Song und Bolton
-        x1 = -1 * (self.l1+self.s1)                 #läuft in negative x-Richtung
-        x2 = -1 * self.l1                           #läuft in negative x-Richtung
-        x3 = self.l2
-        x4 = self.l2 + self.s2
-        d  = self.d
-
-        c=self.c
-        rho = self.rho
-        k = self.k
-
-        
-        # Kalibrierungsdatei 1
-        f = self.freq_data_00_11_22_33
-        Sxx_12 = f.csm[:,self.mic_channels[0],self.mic_channels[0]]     #Autospektraldichte
-        Sxy_12 = f.csm[:,self.mic_channels[0],self.mic_channels[1]]     #Kreuzspektraldichte
-        Ha12 = Sxy_12/Sxx_12      #Übertragungsfunktion der Messung 00 und 11 --> Übertragungsfunktion des Prüflings im unkorrigierten Zustand
-
-        Sxx_13 = Sxx_12           #Autospektraldichte
-        Sxy_13 = f.csm[:,self.mic_channels[0],self.mic_channels[2]]     #Kreuzspektraldichte
-        Ha13 = Sxy_13/Sxx_13      #Übertragungsfunktion der Messung 00 und 22 --> Übertragungsfunktion des Prüflings im unkorrigierten Zustand
-
-        Sxx_34 = f.csm[:,self.mic_channels[2],self.mic_channels[2]]     #Autospektraldichte
-        Sxy_34 = f.csm[:,self.mic_channels[2],self.mic_channels[3]]     #Kreuzspektraldichte
-        Ha34 = Sxy_34/Sxx_34      #Übertragungsfunktion der Messung 22 und 33 --> Übertragungsfunktion des Prüflings im unkorrigierten Zustand
-
-        # Kalibrierungsdatei 2
-        f = self.freq_data_01_10_23_32
-        Sxx_21 = f.csm[:,self.mic_channels[1],self.mic_channels[1]]
-        Sxy_21 = f.csm[:,self.mic_channels[1],self.mic_channels[0]]
-        Hb12 = Sxy_21/Sxx_21          #Übertragungsfunktion der Messung 01 und 10
-
-        Sxx_43 = f.csm[:,self.mic_channels[3],self.mic_channels[3]]
-        Sxy_43 = f.csm[:,self.mic_channels[3],self.mic_channels[2]]
-        Hb34 = Sxy_43/Sxx_43          #Übertragungsfunktion der Messung 23 und 32
-
-        # Kalibrierungsdatei 3
-        f = self.freq_data_02_11_20_33
-        Sxx_31 = f.csm[:,self.mic_channels[2],self.mic_channels[2]]
-        Sxy_31 = f.csm[:,self.mic_channels[2],self.mic_channels[0]]
-        Hb13 = Sxy_31/Sxx_31          #Übertragungsfunktion der Messung 02 und 20
-
-        # Messdatei
-        f = self.freq_data
-        Sxx_12_m = f.csm[:,self.mic_channels[0],self.mic_channels[0]]         #Autospektraldichte 
-        Sxy_12_m = f.csm[:,self.mic_channels[0],self.mic_channels[1]]         #Kreuzspektraldichte
-        H12_unkorr = Sxy_12_m/Sxx_12_m  #Übertragungsfunktion der Kanäle 0 und 1 aus Messung (m) --> unkorrigiertes Signal
-
-        Sxx_13_m = Sxx_12_m             #Autospektraldichte
-        Sxy_13_m = f.csm[:,self.mic_channels[0],self.mic_channels[2]]         #Kreuzspektraldichte
-        H13_unkorr = Sxy_13_m/Sxx_13_m  #Übertragungsfunktion der Kanäle 0 und 2 aus Messung (m) --> unkorrigiertes Signal  
-
-        Sxx_34_m = f.csm[:,self.mic_channels[2],self.mic_channels[2]]           #Autospektraldichte
-        Sxy_34_m = f.csm[:,self.mic_channels[2],self.mic_channels[3]]           #Kreuzspektraldichte
-        H34_unkorr = Sxy_34_m/Sxx_34_m    #Übertragungsfunktion der Kanäle 3 und 4 aus Messung (m) --> unkorrigiertes Signal   
-
-        # Korrekturfunktionen
-        Hkorr_12 = np.sqrt(Ha12/Hb12)        #sqrt(abs(Ha/Hb))*exp(1j*(0.5*(angle(Ha)-angle(Hb))))
-        Hkorr_13 = np.sqrt(Ha13/Hb13)
-        Hkorr_34 = np.sqrt(Ha34/Hb34)    
-
-        #korrigierte Übertragungsfunktionen
-        H12 = H12_unkorr/Hkorr_12
-        H13 = H13_unkorr/Hkorr_13
-        H34 = H34_unkorr/Hkorr_34
-
-        # Ermittlung von Reflektions- und Transmissionsfaktor (Vgl. Bolton/Song und Extrablatt)
-        with np.errstate(divide='ignore', invalid='ignore'):
-            E = (1j*(exp(1j*k*x2)-H12*exp(1j*k*x1)))/(2*sin(k*(x1-x2)))
-            F = (1j*(H12*exp(-1*1j*k*x1)-exp(-1*1j*k*x2)))/(2*sin(k*(x1-x2)))
-            G = (1j*(exp(1j*k*x4)-H34*exp(1j*k*x3)))/(2*sin(k*(x3-x4)))
-            H = (1j*(H34*exp(-1*1j*k*x3)-exp(-1*1j*k*x4)))/(2*sin(k*(x3-x4)))
-
-            P0 = E + F
-            V0 = (E-F)/(rho*c)
-            Pd = G*exp(-1*1j*k*d)+H*exp(1j*k*d)
-            Vd = (G*exp(-1*1j*k*d)-H*exp(1j*k*d))/(rho*c)
-
-            T11 = ((H13*Pd*Vd)+(P0*V0/H13))/((P0*Vd)+(Pd*V0))
-            T12 = ((P0*P0/H13)-(H13*Pd*Pd))/((P0*Vd)+(Pd*V0))
-            T21 = ((V0*V0/H13)-(H13*Vd*Vd))/((P0*Vd)+(Pd*V0))
-            T22 = T11
-
-        # Transfer Matrix:
-        T = np.zeros(shape=(H12.shape[0], 2, 2), dtype=complex)
-        T[:,0,0] = T11
-        T[:,0,1] = T12
-        T[:,1,0] = T21
-        T[:,1,1] = T22
-
-        return T
-        
-    def _get_transmission_coefficient(self):
-        """Calculates transmission coefficient
-        See 8.5.5.1, eq (25)
-
-        Returns:
-            [array]: Transmission coefficient
-                     size: (f x 1), f: frequencies
-        """
-        # Transfer Matrix:
-        T = self.transfer_matrix_one_load
-
-        # Transmission Coefficient (anechoic backed) (eq (25)):
-        # Disable divide by zero warning because first entry of k is always 0
-        with np.errstate(divide='ignore', invalid='ignore'):
-            t = (2 * np.exp(1j*self.k*self.d) /
-                 (T[:, 0, 0] + 
-                  T[:, 0, 1] / (self.rho * self.c) +
-                  T[:, 1, 0] * (self.rho * self.c) + 
-                  T[:, 1, 1]))
-        return t
-
-    def _get_transmission_loss(self):
-        """Calculates Normal Incidence Transmission Loss
-        See 8.5.5.2, eq (26)
-
-        Returns:
-            [array]: Transmission loss
-                     size: (f x 1), f: frequencies
-        """
-        TL = 20*np.log10(np.absolute(1/self.transmission_coefficient))
-        return TL
-
-    def _get_reflection_coefficient(self):
-        """Calculates reflection coefficient
-        See Song & Bolton (2000), eq. (9)
-
-        Returns:
-            [array]: reflection coefficient
-                     size: (f x 1), f: frequencies
-        """
-        T = self.transfer_matrix_one_load
-        with np.errstate(divide='ignore', invalid='ignore'):
-            R = (T[:,0,0] + T[:,0,1]/(self.rho*self.c) - self.rho*self.c * T[:,1,0] - T[:,1,1]) / \
-                (T[:,0,0] + T[:,0,1]/(self.rho*self.c) + self.rho*self.c * T[:,1,0] + T[:,1,1])
-        return R
-        
-    def _get_reflection_coefficient_hard_backed(self):
-        """Calculates reflection coefficient (hard backed)
-        See 8.5.5.3, eq (27)
-
-        Returns:
-            [array]: reflection coefficient
-                     size: (f x 1), f: frequencies
-        """
-        # Transfer Matrix:
-        T = self.transfer_matrix_one_load
-
-        # Reflection coefficient (hard backed) (eq (27)):
-        # Disable divide by zero warning because first entry of k is always 0
-        with np.errstate(divide='ignore', invalid='ignore'):
-            R = ((T[:, 0, 0] - (self.rho * self.c * T[:,1,0])) / 
-                 (T[:, 0, 0] + (self.rho * self.c * T[:,1,0])))
-        return R
-    
-    def _get_absorption_coefficient(self):
-        """Calculates absorption coefficient (anechoic backed)
-        See 8.5.5.4, eq (28)
-
-        Returns:
-            [array]: absorption coefficient
-                     size: (f x 1), f: frequencies
-        """
-        
-
-        # Absorption coefficient (hard backed) (eq (28)):
-        alpha = 1 - np.abs(self.reflection_coefficient)**2
-        return alpha
-    
-    def _get_absorption_coefficient_hard_backed(self):
-        """Calculates absorption coefficient (hard backed)
-        See 8.5.5.4, eq (28)
-
-        Returns:
-            [array]: absorption coefficient
-                     size: (f x 1), f: frequencies
-        """
-        
-
-        # Absorption coefficient (hard backed) (eq (28)):
-        alpha = 1 - np.abs(self.reflection_coefficient_hard_backed)**2
-        return alpha
-    
-    def _get_propagation_wavenumber(self):
-        """Calculates propagation_wavenumber in the material
-        See 8.5.5.5, eq (29)
-
-        Returns:
-            [array]: propagation wavenumber
-                     size: (f x 1), f: frequencies
-        """
-        # Disable divide by zero warning because first entry of k is always 0
-        with np.errstate(divide='ignore', invalid='ignore'):
-            return 1 / self.d * np.arccos( self.transfer_matrix_one_load[:,0,0] )
-    
-    def _get_z(self):
-        """Calculate Characteristic Impedance in material
-        See 8.5.5.6 (eq. (30))
-        Returns:
-            [array]: Characteristic Impedance
-                     size: (f x 1), f: frequencies
-        """
-        T = self.transfer_matrix_one_load
-        z = np.sqrt(T[:,0,1]/T[:,1,0])
-        return z
-    
-class Measurement_CottbusStyle(Measurement):
+class Measurement_Cottbusstyle(Measurement):
     ''' 
     Measurement with Transfer Matrix Method Cottbus style, but with fixed csm indexing:
     '''
@@ -843,3 +613,103 @@ class Measurement_CottbusStyle(Measurement):
         T = self.transfer_matrix_one_load
         z = np.sqrt(T[:,0,1]/T[:,1,0])
         return z
+
+class Measurement_Cottbusstyle_OG(Measurement_Cottbusstyle):
+    ''' 
+    Measurement with Transfer Matrix Method Cottbus style (with original indexing).
+    '''
+    
+    def _get_transfer_matrix_one_load(self):
+        '''transmission loss directly'''
+
+        #Anpassung der Größen an Song und Bolton
+        x1 = -1 * (self.l1+self.s1)                 #läuft in negative x-Richtung
+        x2 = -1 * self.l1                           #läuft in negative x-Richtung
+        x3 = self.l2
+        x4 = self.l2 + self.s2
+        d  = self.d
+
+        c=self.c
+        rho = self.rho
+        k = self.k
+
+        
+        # Kalibrierungsdatei 1
+        f = self.freq_data_00_11_22_33
+        Sxx_12 = f.csm[:,self.mic_channels[0],self.mic_channels[0]]     #Autospektraldichte
+        Sxy_12 = f.csm[:,self.mic_channels[0],self.mic_channels[1]]     #Kreuzspektraldichte
+        Ha12 = Sxy_12/Sxx_12      #Übertragungsfunktion der Messung 00 und 11 --> Übertragungsfunktion des Prüflings im unkorrigierten Zustand
+
+        Sxx_13 = Sxx_12           #Autospektraldichte
+        Sxy_13 = f.csm[:,self.mic_channels[0],self.mic_channels[2]]     #Kreuzspektraldichte
+        Ha13 = Sxy_13/Sxx_13      #Übertragungsfunktion der Messung 00 und 22 --> Übertragungsfunktion des Prüflings im unkorrigierten Zustand
+
+        Sxx_34 = f.csm[:,self.mic_channels[2],self.mic_channels[2]]     #Autospektraldichte
+        Sxy_34 = f.csm[:,self.mic_channels[2],self.mic_channels[3]]     #Kreuzspektraldichte
+        Ha34 = Sxy_34/Sxx_34      #Übertragungsfunktion der Messung 22 und 33 --> Übertragungsfunktion des Prüflings im unkorrigierten Zustand
+
+        # Kalibrierungsdatei 2
+        f = self.freq_data_01_10_23_32
+        Sxx_21 = f.csm[:,self.mic_channels[1],self.mic_channels[1]]
+        Sxy_21 = f.csm[:,self.mic_channels[1],self.mic_channels[0]]
+        Hb12 = Sxy_21/Sxx_21          #Übertragungsfunktion der Messung 01 und 10
+
+        Sxx_43 = f.csm[:,self.mic_channels[3],self.mic_channels[3]]
+        Sxy_43 = f.csm[:,self.mic_channels[3],self.mic_channels[2]]
+        Hb34 = Sxy_43/Sxx_43          #Übertragungsfunktion der Messung 23 und 32
+
+        # Kalibrierungsdatei 3
+        f = self.freq_data_02_11_20_33
+        Sxx_31 = f.csm[:,self.mic_channels[2],self.mic_channels[2]]
+        Sxy_31 = f.csm[:,self.mic_channels[2],self.mic_channels[0]]
+        Hb13 = Sxy_31/Sxx_31          #Übertragungsfunktion der Messung 02 und 20
+
+        # Messdatei
+        f = self.freq_data
+        Sxx_12_m = f.csm[:,self.mic_channels[0],self.mic_channels[0]]         #Autospektraldichte 
+        Sxy_12_m = f.csm[:,self.mic_channels[0],self.mic_channels[1]]         #Kreuzspektraldichte
+        H12_unkorr = Sxy_12_m/Sxx_12_m  #Übertragungsfunktion der Kanäle 0 und 1 aus Messung (m) --> unkorrigiertes Signal
+
+        Sxx_13_m = Sxx_12_m             #Autospektraldichte
+        Sxy_13_m = f.csm[:,self.mic_channels[0],self.mic_channels[2]]         #Kreuzspektraldichte
+        H13_unkorr = Sxy_13_m/Sxx_13_m  #Übertragungsfunktion der Kanäle 0 und 2 aus Messung (m) --> unkorrigiertes Signal  
+
+        Sxx_34_m = f.csm[:,self.mic_channels[2],self.mic_channels[2]]           #Autospektraldichte
+        Sxy_34_m = f.csm[:,self.mic_channels[2],self.mic_channels[3]]           #Kreuzspektraldichte
+        H34_unkorr = Sxy_34_m/Sxx_34_m    #Übertragungsfunktion der Kanäle 3 und 4 aus Messung (m) --> unkorrigiertes Signal   
+
+        # Korrekturfunktionen
+        Hkorr_12 = np.sqrt(Ha12/Hb12)        #sqrt(abs(Ha/Hb))*exp(1j*(0.5*(angle(Ha)-angle(Hb))))
+        Hkorr_13 = np.sqrt(Ha13/Hb13)
+        Hkorr_34 = np.sqrt(Ha34/Hb34)    
+
+        #korrigierte Übertragungsfunktionen
+        H12 = H12_unkorr/Hkorr_12
+        H13 = H13_unkorr/Hkorr_13
+        H34 = H34_unkorr/Hkorr_34
+
+        # Ermittlung von Reflektions- und Transmissionsfaktor (Vgl. Bolton/Song und Extrablatt)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            E = (1j*(exp(1j*k*x2)-H12*exp(1j*k*x1)))/(2*sin(k*(x1-x2)))
+            F = (1j*(H12*exp(-1*1j*k*x1)-exp(-1*1j*k*x2)))/(2*sin(k*(x1-x2)))
+            G = (1j*(exp(1j*k*x4)-H34*exp(1j*k*x3)))/(2*sin(k*(x3-x4)))
+            H = (1j*(H34*exp(-1*1j*k*x3)-exp(-1*1j*k*x4)))/(2*sin(k*(x3-x4)))
+
+            P0 = E + F
+            V0 = (E-F)/(rho*c)
+            Pd = G*exp(-1*1j*k*d)+H*exp(1j*k*d)
+            Vd = (G*exp(-1*1j*k*d)-H*exp(1j*k*d))/(rho*c)
+
+            T11 = ((H13*Pd*Vd)+(P0*V0/H13))/((P0*Vd)+(Pd*V0))
+            T12 = ((P0*P0/H13)-(H13*Pd*Pd))/((P0*Vd)+(Pd*V0))
+            T21 = ((V0*V0/H13)-(H13*Vd*Vd))/((P0*Vd)+(Pd*V0))
+            T22 = T11
+
+        # Transfer Matrix:
+        T = np.zeros(shape=(H12.shape[0], 2, 2), dtype=complex)
+        T[:,0,0] = T11
+        T[:,0,1] = T12
+        T[:,1,0] = T21
+        T[:,1,1] = T22
+
+        return T
