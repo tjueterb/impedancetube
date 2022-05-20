@@ -138,19 +138,35 @@ class Measurement(HasPrivateTraits):
 
 class Measurement_E2611(Measurement):
     '''
-    Transfer Matrix Method following the E2611 Norm
+    Transfer Matrix Method following the E2611 Norm, with one or two loads.
+    
+    For the two load case, the 'method' trait needs to be set to 'two load',
+    and a frequency data of the second load case needs to be passed as freq_data_two_load.
     '''
     # channels of the microphones in the given freq_data object
     ref_channel = Int(0, desc="Channel index of the reference mic")
     mic_channels = List([1, 2, 3, 4], minlen=4, maxlen=4,
                         desc="Channel indices of mics in positions 0-3")
 
-    # The transfer function for all microphones:
+    #: The :class:`~acoular.spectra.PowerSpectra` object that provides the csm for the second load coase.
+    freq_data_two_load = Trait(PowerSpectra,
+                               desc="power spectra object")
+
+    # The transfer functions for all microphones:
     transfer_function = Property(
         desc='Transfer function between all mics and ref. mic (channel i_ref)')
+    transfer_function_two_load = Property(
+        desc='Transfer function between all mics and ref. mic (channel i_ref) for the second load case')
 
     # The transfer Matrix
+    transfer_matrix = Property(desc='Transfer Matrix (dependent on load case)')
     transfer_matrix_one_load = Property(desc='Transfer Matrix for one load')
+    transfer_matrix_two_load = Property(desc='Transfer Matrix for two loads')
+
+    # Choose one load or two load method:
+    method = Trait('one load', 'two load',
+                   default_value='one load',
+                   desc="Method for calculating the transfer matrix")
 
     # Amplitude and Phase correction Transfer function
     H_c = Array()
@@ -178,7 +194,39 @@ class Measurement_E2611(Measurement):
         H_n_ref = H_n_ref / self.H_c
 
         return H_n_ref
-    
+
+    def _get_transfer_function_two_load(self):
+        """Calculates the transfer function for all microphones for the second load case
+        See 8.5.1 eq (15)
+              
+        Returns:
+            [array]:    Transfer function for all microphones 
+                        size: (f x n), f: frequencies, n: channels
+        """
+        csm = self.freq_data_two_load.csm
+
+        H_n_ref = np.empty(csm.shape[0:2], dtype=complex)  # create empty array
+
+        for n in range(self.freq_data_two_load.numchannels):
+            #NOTE: correct indexing of the csm verified with Adam
+            H_n_ref[:, n] = csm[:, n, self.ref_channel] / \
+                csm[:, self.ref_channel, self.ref_channel]  # eq (15)
+
+        # apply correction transfer function:
+        H_n_ref = H_n_ref / self.H_c
+
+        return H_n_ref
+
+    def _get_transfer_matrix(self):
+        """gets the correct transfer matrix, 
+        depending on the load case specified in self.method
+        """
+
+        if self.method == 'one load':
+            return self.transfer_matrix_one_load
+        elif self.method == 'two load':
+            return self.transfer_matrix_two_load
+
     def _get_transfer_matrix_one_load(self):
         """Calculates the one load transfer matrix 
         See 8.5.4.2
@@ -226,6 +274,81 @@ class Measurement_E2611(Measurement):
 
         return T
 
+    def _get_transfer_matrix_two_load(self):
+        """Calculates the one load transfer matrix 
+        See 8.5.4.2
+        
+        Returns:
+            [array]: Transfer Matrix
+                     size:(f x 2 x 2), f: frequencies
+        """
+        # Get transfer functions:
+        H_a = self.transfer_function
+        H_b = self.transfer_function_two_load
+
+        #TODO: Refactor this
+
+        # Disable divide by zero warning because first entry of k is always 0
+        with np.errstate(divide='ignore', invalid='ignore'):
+            # Decompose wave field for first load case:
+            # eq (17):
+            A_a = 1j * ((H_a[:, self.mic_channels[0]] * np.exp(-1j*self.k*(self.l1)) -
+                         H_a[:, self.mic_channels[1]] * np.exp(-1j*self.k*(self.l1+self.s1))) /
+                        (2 * np.sin(self.k*self.s1)))
+            # eq (18):
+            B_a = 1j * ((H_a[:, self.mic_channels[1]] * np.exp(+1j*self.k*(self.l1+self.s1)) -
+                         H_a[:, self.mic_channels[0]] * np.exp(+1j*self.k*(self.l1))) /
+                        (2 * np.sin(self.k*self.s1)))
+            # eq (19):
+            C_a = 1j * ((H_a[:, self.mic_channels[2]] * np.exp(+1j*self.k*(self.l2+self.s2)) -
+                         H_a[:, self.mic_channels[3]] * np.exp(+1j*self.k*(self.l2))) /
+                        (2 * np.sin(self.k*self.s2)))
+            # eq (20):
+            D_a = 1j * ((H_a[:, self.mic_channels[3]] * np.exp(-1j*self.k*(self.l2)) -
+                         H_a[:, self.mic_channels[2]] * np.exp(-1j*self.k*(self.l2+self.s2))) /
+                        (2 * np.sin(self.k*self.s2)))
+
+            # Calculate acoustic pressure and velocity on both faces of specimen:
+            p0_a = A_a + B_a
+            pd_a = C_a * np.exp(-1j*self.k*self.d) + D_a * np.exp(1j*self.k*self.d)
+            u0_a = (A_a-B_a) / (self.rho * self.c)
+            ud_a = ((C_a * np.exp(-1j*self.k*self.d) - D_a * np.exp(1j*self.k*self.d)) /
+                    (self.rho * self.c))
+
+            # Decompose wave field for second load case:
+            # eq (17):
+            A_b = 1j * ((H_b[:, self.mic_channels[0]] * np.exp(-1j*self.k*(self.l1)) -
+                         H_b[:, self.mic_channels[1]] * np.exp(-1j*self.k*(self.l1+self.s1))) /
+                        (2 * np.sin(self.k*self.s1)))
+            # eq (18):
+            B_b = 1j * ((H_b[:, self.mic_channels[1]] * np.exp(+1j*self.k*(self.l1+self.s1)) -
+                         H_b[:, self.mic_channels[0]] * np.exp(+1j*self.k*(self.l1))) /
+                        (2 * np.sin(self.k*self.s1)))
+            # eq (19):
+            C_b = 1j * ((H_b[:, self.mic_channels[2]] * np.exp(+1j*self.k*(self.l2+self.s2)) -
+                         H_b[:, self.mic_channels[3]] * np.exp(+1j*self.k*(self.l2))) /
+                        (2 * np.sin(self.k*self.s2)))
+            # eq (20):
+            D_b = 1j * ((H_b[:, self.mic_channels[3]] * np.exp(-1j*self.k*(self.l2)) -
+                         H_b[:, self.mic_channels[2]] * np.exp(-1j*self.k*(self.l2+self.s2))) /
+                        (2 * np.sin(self.k*self.s2)))
+
+            # Calculate acoustic pressure and velocity on both faces of specimen:
+            p0_b = A_b + B_b
+            pd_b = C_b * np.exp(-1j*self.k*self.d) + D_b * np.exp(1j*self.k*self.d)
+            u0_b = (A_b-B_b) / (self.rho * self.c)
+            ud_b = ((C_b * np.exp(-1j*self.k*self.d) - D_b * np.exp(1j*self.k*self.d)) /
+                    (self.rho * self.c))
+
+            # calculate Transfer Matrix:
+            T = np.zeros(shape=(H_a.shape[0], 2, 2), dtype=complex)
+            T[:, 0, 0] = (p0_a*ud_b - p0_b*ud_a) / (pd_a*ud_b - pd_b*ud_a)
+            T[:, 1, 0] = (u0_a*ud_b - u0_b*ud_a) / (pd_a*ud_b - pd_b*ud_a)
+            T[:, 0, 1] = (p0_b*pd_a - p0_a*pd_b) / (pd_a*ud_b - pd_b*ud_a)
+            T[:, 1, 1] = (pd_a*u0_b - pd_b*u0_a) / (pd_a*ud_b - pd_b*ud_a)
+
+        return T
+
     def _get_transmission_coefficient(self):
         """Calculates transmission coefficient
         See 8.5.5.1, eq (25)
@@ -235,15 +358,15 @@ class Measurement_E2611(Measurement):
                      size: (f x 1), f: frequencies
         """
         # Transfer Matrix:
-        T = self.transfer_matrix_one_load
+        T = self.transfer_matrix
 
         # Transmission Coefficient (anechoic backed) (eq (25)):
         # Disable divide by zero warning because first entry of k is always 0
         with np.errstate(divide='ignore', invalid='ignore'):
             t = (2 * np.exp(1j*self.k*self.d) /
-                 (T[:, 0, 0] + 
+                 (T[:, 0, 0] +
                   T[:, 0, 1] / (self.rho * self.c) +
-                  T[:, 1, 0] * (self.rho * self.c) + 
+                  T[:, 1, 0] * (self.rho * self.c) +
                   T[:, 1, 1]))
         return t
 
@@ -266,7 +389,9 @@ class Measurement_E2611(Measurement):
             [array]: reflection coefficient
                      size: (f x 1), f: frequencies
         """
-        T = self.transfer_matrix_one_load
+        # Transfer Matrix:
+        T = self.transfer_matrix
+
         with np.errstate(divide='ignore', invalid='ignore'):
             R = (T[:, 0, 0] + T[:, 0, 1]/(self.rho*self.c) - self.rho*self.c * T[:, 1, 0] - T[:, 1, 1]) / \
                 (T[:, 0, 0] + T[:, 0, 1]/(self.rho*self.c) +
@@ -282,7 +407,7 @@ class Measurement_E2611(Measurement):
                      size: (f x 1), f: frequencies
         """
         # Transfer Matrix:
-        T = self.transfer_matrix_one_load
+        T = self.transfer_matrix
 
         # Reflection coefficient (hard backed) (eq (27)):
         # Disable divide by zero warning because first entry of k is always 0
@@ -325,10 +450,13 @@ class Measurement_E2611(Measurement):
             [array]: propagation wavenumber
                      size: (f x 1), f: frequencies
         """
+        # Transfer Matrix:
+        T = self.transfer_matrix
+
         # Disable divide by zero warning because first entry of k is always 0
         with np.errstate(divide='ignore', invalid='ignore'):
-            return 1 / self.d * np.arccos( self.transfer_matrix_one_load[:,0,0] )
-    
+            return 1 / self.d * np.arccos(T[:, 0, 0])
+
     def _get_z(self):
         """Calculate Characteristic Impedance in material
         See 8.5.5.6 (eq. (30))
@@ -336,8 +464,10 @@ class Measurement_E2611(Measurement):
             [array]: Characteristic Impedance
                      size: (f x 1), f: frequencies
         """
-        T = self.transfer_matrix_one_load
-        z = np.sqrt(T[:,0,1]/T[:,1,0])
+        # Transfer Matrix:
+        T = self.transfer_matrix
+
+        z = np.sqrt(T[:, 0, 1]/T[:, 1, 0])
         return z
 
 
