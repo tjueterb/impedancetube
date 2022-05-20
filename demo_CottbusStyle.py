@@ -2,36 +2,32 @@ from os.path import join, isdir
 from os import mkdir
 import matplotlib.pyplot as plt
 import numpy as np
-from acoular import Calib, TimeSamples, PowerSpectra
+from acoular import TimeSamples, PowerSpectra
 
-from pyTransmission import Measurement_E2611, MicSwitchCalib_E2611
+from pyTransmission import Measurement_Cottbus, MicSwitchCalib_Cottbus
 
 ##############################################################################
 # USER INPUT:
 ##############################################################################
 
-# ---------------- Amplitude Calibration (with regular calibrator) -----------
-# (use create_calib_factor_xml_file.py to convert raw csv files to xml):
-calibpath = './Resources'
-calibfile = 'calib.xml'
-calibration = Calib(from_file=join(calibpath, calibfile))
+# # ---------------- Amplitude Calibration (with regular calibrator) -----------
+# # (use create_calib_factor_xml_file.py to convert raw csv files to xml):
+# calibpath = './Resources'
+# calibfile = 'calib.xml'
+# calibration = Calib(from_file=join(calibpath, calibfile))
 
 # ---------------- Amplitude and Phase Correction Measurements ---------------
 # relative path of the time data files (.h5 data format)
 soundfilepath = './Resources/'
 
 # filename of empty measurement with direct configuration:
-filename_direct = 'empty_00_11_22_33_44_55.h5'
-#channels of switched mic and filenames of measurements with switched configurations
-filenames_switched = {1: 'empty_01_10_22_33_44_55.h5',  # <- here 2nd mic (index 1) was switched w/ ref (index 0)
-                      2: 'empty_02_11_20_33_44_55.h5',
-                      3: 'empty_03_11_22_30_44_55.h5',
-                      4: 'empty_04_11_22_33_40_55.h5',
-                      5: 'empty_05_11_22_33_44_50.h5'}
+filename_direct = 'empty_00_11_22_33_44_55.h5' 
 
-# reference channel 
-# important: The reference Channel has to be 0 for the amplitude/phase correction to work!:
-ref_channel = 0
+# calibration files with switched microphone configurations (see README), DON'T CHANGE THE KEY FIELDS:
+filenames_switched = {'00_12_21_34_43_55': 'empty_00_12_21_34_43_55.h5',  # <- here mic 1 was switched w/ mic 2 and mic 3 was switched w/ mic 4
+                      '00_13_22_31_44_55': 'empty_00_13_22_31_44_55.h5',
+                      '02_11_20_35_44_53': 'empty_02_11_20_35_44_53.h5',
+                      '03_11_22_30_44_55': 'empty_03_11_22_30_44_55.h5',}
 
 # Mic channels in positions 1-4 of the narrow and wide configuration 
 # (if the channels are sorted in increasing ordner from next to loudspeaker 
@@ -61,7 +57,7 @@ plotpath = './Plots'
 # ---------------- Amplitude and Phase Correction  ---------------------------
 
 # get timedata of direct configuration:
-time_data = TimeSamples(name=join(soundfilepath, filename_direct), calib=calibration)
+time_data = TimeSamples(name=join(soundfilepath, filename_direct))
 
 # get frequency data / csm of direct configuration:
 freq_data = PowerSpectra(time_data=time_data,
@@ -72,34 +68,77 @@ freq_data = PowerSpectra(time_data=time_data,
 
 # initialize correction transferfunction with ones so the
 # ref-ref transfer function stays as ones, which is correct
-H_c = np.ones((freq_data.csm.shape[0:2]), dtype=complex)
+H_c_narrow = np.ones((freq_data.csm.shape[0],3), dtype=complex)
+H_c_wide   = np.ones((freq_data.csm.shape[0],3), dtype=complex)
 
-# iterate over all switched configurations:
-for i in filenames_switched:
+configs = ['00_12_21_34_43_55',
+           '00_13_22_31_44_55',
+           '02_11_20_35_44_53',
+           '03_11_22_30_44_55']
+
+for i in configs:
     # get timedata of switched configuration:
-    time_data_switched = TimeSamples(name=join(soundfilepath, filenames_switched[i]), calib=calibration)
-
+    time_data_switched = TimeSamples(name=join(soundfilepath, filenames_switched[i]))
     # get frequency data of switched configuration:
     freq_data_switched = PowerSpectra(time_data=time_data_switched,
                                       block_size=freq_data.block_size,
                                       window=freq_data.window,
                                       cached=freq_data.cached)
-
-    # calculate amplitude/phase correction for switched channel:
-    calib = MicSwitchCalib_E2611(freq_data=freq_data,
-                                 freq_data_switched=freq_data_switched,
-                                 ref_channel=0,
-                                 test_channel=i)
-
-    # store result:
-    H_c[:, i] = calib.H_c
     
+    if i == '00_12_21_34_43_55':
+        # calculate amplitude/phase correction for switched channel:
+        calib = MicSwitchCalib_Cottbus(freq_data=freq_data,
+                                       freq_data_switched=freq_data_switched,
+                                       ref_channel=1,
+                                       test_channel=2)
+        # store result:
+        H_c_narrow[:, 0] = calib.H_c
+        
+        calib = MicSwitchCalib_Cottbus(freq_data=freq_data,
+                                       freq_data_switched=freq_data_switched,
+                                       ref_channel=3,
+                                       test_channel=4)
+        # store result:
+        H_c_narrow[:, 2] = calib.H_c
+    
+    if i == '00_13_22_31_44_55':
+        # calculate amplitude/phase correction for switched channel:
+        calib = MicSwitchCalib_Cottbus(freq_data=freq_data,
+                                       freq_data_switched=freq_data_switched,
+                                       ref_channel=1,
+                                       test_channel=3)
+        # store result:
+        H_c_narrow[:, 1] = calib.H_c
+        
+    if i == '02_11_20_35_44_53':
+        # calculate amplitude/phase correction for switched channel:
+        calib = MicSwitchCalib_Cottbus(freq_data=freq_data,
+                                       freq_data_switched=freq_data_switched,
+                                       ref_channel=0,
+                                       test_channel=2)
+        # store result:
+        H_c_wide[:, 0] = calib.H_c
+        
+        calib = MicSwitchCalib_Cottbus(freq_data=freq_data,
+                                       freq_data_switched=freq_data_switched,
+                                       ref_channel=3,
+                                       test_channel=5)
+        # store result:
+        H_c_wide[:, 2] = calib.H_c
+    
+    if i == '03_11_22_30_44_55':
+        # calculate amplitude/phase correction for switched channel:
+        calib = MicSwitchCalib_Cottbus(freq_data=freq_data,
+                                       freq_data_switched=freq_data_switched,
+                                       ref_channel=0,
+                                       test_channel=3)
+        # store result:
+        H_c_wide[:, 1] = calib.H_c
 
 # ---------------- Measurement  ----------------------------------------------
 # iterate over all measurements
 for filename_measurement in filenames_measurement:
-    td = TimeSamples(name=join(soundfilepath, filename_measurement), 
-                     calib=calibration)
+    td = TimeSamples(name=join(soundfilepath, filename_measurement))
 
     # get frequency data / csm:
     freq_data = PowerSpectra(time_data=td,
@@ -115,15 +154,16 @@ for filename_measurement in filenames_measurement:
         if spacing == 'narrow':
             s1 = s2 = 0.085  # distance between mics
             mic_channels = mic_channels_narrow  # indices of microphones #1-#4
-
+            H_c = H_c_narrow # phase/amplitude correction transfer functions
+            
         elif spacing == 'wide':
             s1 = s2 = 0.5 # distance between mics
             mic_channels = mic_channels_wide
-
-        msm = Measurement_E2611(freq_data=freq_data,
+            H_c = H_c_wide # phase/amplitude correction transfer functions
+            
+        msm = Measurement_Cottbus(freq_data=freq_data,
                         s1=s1,  # distance between mic #1 and #2
                         s2=s2,  # distance between mic #3 and #4
-                        ref_channel=ref_channel,  # index of the reference microphone
                         mic_channels=mic_channels, # indices of the microphones in positions 1-4
                         H_c=H_c) # Amplitude/Phase Correction factors  
 
