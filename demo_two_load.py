@@ -135,7 +135,7 @@ for filename_measurement_one_load, filename_measurement_two_load in zip(filename
 
         msm = Measurement_E2611(freq_data=freq_data_one_load,
                                 freq_data_two_load=freq_data_two_load,
-                                method='one load',
+                                method='two load',
                                 s1=s1,  # distance between mic #1 and #2
                                 s2=s2,  # distance between mic #3 and #4
                                 ref_channel=ref_channel,  # index of the reference microphone
