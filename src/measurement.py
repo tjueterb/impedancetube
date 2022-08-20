@@ -17,25 +17,6 @@ class Measurement(HasPrivateTraits):
 
     # Block size
     block_size = Delegate('freq_data')
-    
-    # Tube dimensions
-    '''
-    Values for the TAP ducts:
-    Rect: l1 = 0.3, l2 = 0.8,  s1,s2 = 0.085 or 0.5
-    circ: l1 = 0.2, l2 = 0.28, s1,s2 = 0.075 or 0.225
-    '''
-    l1 = Float(0.3, desc='distance between beginning of specimen and mic 2')
-    l2 = Float(0.8, desc='distance between beginning of specimen and mic 3')
-    s1 = Float(0.085, desc='Distance between mic 1 and 2 in m')
-    s2 = Float(0.085, desc='Distance between mic 3 and 4 in m')
-    d = Float(0.5, desc='length of test specimen (test tube section is 0.7m)')
-
-
-    # Tube parameters
-    tube_shape = Trait('rect', 'circ',
-                       desc="Shape of the measurement tube")
-    tube_d = Float(0.1,
-                   desc="diameter or (if rectangular) largest section dimension of tube")
 
     #: The :class:`~acoular.spectra.PowerSpectra` object that provides the csm.
     freq_data = Trait(PowerSpectra,
@@ -144,6 +125,25 @@ class Measurement_E2611(Measurement):
     For the two load case, the 'method' trait needs to be set to 'two load',
     and a frequency data of the second load case needs to be passed as freq_data_two_load.
     '''
+    # Tube dimensions
+    '''
+    Values for the TAP ducts:
+    Rect: l1 = 0.3, l2 = 0.8,  s1,s2 = 0.085 or 0.5
+    circ: l1 = 0.2, l2 = 0.28, s1,s2 = 0.075 or 0.225
+    '''
+    l1 = Float(0.3, desc='distance between beginning of specimen and mic 2')
+    l2 = Float(0.8, desc='distance between beginning of specimen and mic 3')
+    s1 = Float(0.085, desc='Distance between mic 1 and 2 in m')
+    s2 = Float(0.085, desc='Distance between mic 3 and 4 in m')
+    d = Float(0.5, desc='length of test specimen (test tube section is 0.7m)')
+
+
+    # Tube parameters
+    tube_shape = Trait('rect', 'circ',
+                       desc="Shape of the measurement tube")
+    tube_d = Float(0.1,
+                   desc="diameter or (if rectangular) largest section dimension of tube")
+    
     # channels of the microphones in the given freq_data object
     ref_channel = Int(0, desc="Channel index of the reference mic")
     mic_channels = List([1, 2, 3, 4], minlen=4, maxlen=4,
