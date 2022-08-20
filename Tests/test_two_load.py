@@ -3,24 +3,22 @@ from os import mkdir
 import matplotlib.pyplot as plt
 import numpy as np
 from acoular import Calib, TimeSamples, PowerSpectra
+from pathlib import Path
+import sys
+sys.path.append('..')
 
 from pyTransmission import Measurement_E2611, MicSwitchCalib_E2611
-
 
 def test_two_load_method():
     ##############################################################################
     # USER INPUT:
     ##############################################################################
-
-    # ---------------- Amplitude Calibration (with regular calibrator) -----------
-    # (use create_calib_factor_xml_file.py to convert raw csv files to xml):
-    calibpath = './Resources'
-    calibfile = 'calib.xml'
-    calibration = Calib(from_file=join(calibpath, calibfile))
+    reference_data_path = './reference_data_two_load' # path for .npy files with reference data
+    Path(reference_data_path).mkdir(parents=True, exist_ok=True)
 
     # ---------------- Amplitude and Phase Correction Measurements ---------------
     # relative path of the time data files (.h5 data format)
-    soundfilepath = './Resources/'
+    soundfilepath = '../Resources/'
 
     # filename of empty measurement with direct configuration:
     filename_direct = 'empty_00_11_22_33_44_55.h5'
@@ -57,7 +55,7 @@ def test_two_load_method():
     cached = False
 
     # Parameters for plot:
-    savePlot = False
+    showPlot = False
     plotpath = './Plots'
 
     ##############################################################################
@@ -67,8 +65,7 @@ def test_two_load_method():
     # ---------------- Amplitude and Phase Correction  ---------------------------
 
     # get timedata of direct configuration:
-    time_data = TimeSamples(
-        name=join(soundfilepath, filename_direct), calib=calibration)
+    time_data = TimeSamples(name=join(soundfilepath, filename_direct))
 
     # get frequency data / csm of direct configuration:
     freq_data = PowerSpectra(time_data=time_data,
@@ -85,7 +82,7 @@ def test_two_load_method():
     for i in filenames_switched:
         # get timedata of switched configuration:
         time_data_switched = TimeSamples(
-            name=join(soundfilepath, filenames_switched[i]), calib=calibration)
+            name=join(soundfilepath, filenames_switched[i]))
 
         # get frequency data of switched configuration:
         freq_data_switched = PowerSpectra(time_data=time_data_switched,
@@ -102,15 +99,14 @@ def test_two_load_method():
         # store result:
         H_c[:, i] = calib.H_c
 
+
     # ---------------- Measurement  ----------------------------------------------
     # iterate over all measurements
     for filename_measurement_one_load, filename_measurement_two_load in zip(filenames_measurement_one_load,
                                                                             filenames_measurement_two_load):
-        td_one_load = TimeSamples(name=join(soundfilepath, filename_measurement_one_load),
-                                  calib=calibration)
+        td_one_load = TimeSamples(name=join(soundfilepath, filename_measurement_one_load))
 
-        td_two_load = TimeSamples(name=join(soundfilepath, filename_measurement_two_load),  # TODO: add actual second load case
-                                  calib=calibration)
+        td_two_load = TimeSamples(name=join(soundfilepath, filename_measurement_two_load))
 
         # get frequency data / csm:
         freq_data_one_load = PowerSpectra(time_data=td_one_load,
@@ -124,7 +120,6 @@ def test_two_load_method():
                                           window=window,
                                           overlap=overlap,
                                           cached=cached)
-
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
         # use both narrow and wide microphone positions for lower and higher frequencies:
@@ -159,33 +154,62 @@ def test_two_load_method():
             # get fft frequencies
             freqs1 = msm1.freq_data.fftfreq()
             freqs2 = msm2.freq_data.fftfreq()
-            assert(np.allclose(freqs1, freqs2))
+            # np.save(f'{reference_data_path}/freqs_{spacing}', freqs1)
+            assert(np.allclose(freqs1, freqs2, equal_nan=True))
+            assert(np.allclose(freqs1, np.load(f'{reference_data_path}/freqs_{spacing}.npy'), equal_nan=True))
+            
 
             # get transfer_matric
             T1 = msm1.transfer_matrix
             T2 = msm2.transfer_matrix
-            assert (np.allclose(T1, T2, equal_nan=True))
+            # np.save(f'{reference_data_path}/transfer_matrix_{spacing}', T1)
+            assert(np.allclose(T1, T2, equal_nan=True))
+            assert(np.allclose(T1, np.load(f'{reference_data_path}/transfer_matrix_{spacing}.npy'), equal_nan=True))
 
             # get transmission factor
             t1 = msm1.transmission_coefficient
             t2 = msm2.transmission_coefficient
+            # np.save(f'{reference_data_path}/transmission_coefficient_{spacing}', t1)
             assert(np.allclose(t1, t2, equal_nan=True))
+            assert(np.allclose(t1, np.load(f'{reference_data_path}/transmission_coefficient_{spacing}.npy'), equal_nan=True))
 
             # calculate transmission loss
             transmission_loss1 = msm1.transmission_loss
             transmission_loss2 = msm2.transmission_loss
+            # np.save(f'{reference_data_path}/transmission_loss_{spacing}', transmission_loss1)
             assert(np.allclose(transmission_loss1,
-                   transmission_loss2, equal_nan=True))
+                    transmission_loss2, equal_nan=True))
+            assert(np.allclose(transmission_loss1, np.load(f'{reference_data_path}/transmission_loss_{spacing}.npy'), equal_nan=True))
 
             # if needed: calculate Impedance, plotting is the same
             z1 = msm1.z
             z2 = msm2.z
+            # np.save(f'{reference_data_path}/z_{spacing}', z1)
             assert(np.allclose(z1, z2, equal_nan=True))
+            assert(np.allclose(z1, np.load(f'{reference_data_path}/z_{spacing}.npy'), equal_nan=True))
 
+            
             # get frequency working range
             freqrange1 = msm1.working_frequency_range
             freqrange2 = msm2.working_frequency_range
+            # np.save(f'{reference_data_path}/freqrange_{spacing}', freqrange1)
             assert(np.allclose(freqrange1, freqrange2, equal_nan=True))
+            assert(np.allclose(freqrange1, np.load(f'{reference_data_path}/freqrange_{spacing}.npy'), equal_nan=True))
+    
+            # only use frequencies in the working range
+            idx = np.logical_and(freqs1 >= freqrange1[0], freqs1 <= freqrange1[1])
+
+            # plot
+            ax.plot(freqs1[idx], transmission_loss1[idx])
+
+        ax.set(title=f'{filename_measurement_one_load}\n{filename_measurement_two_load}',
+               xlabel='f [Hz]',
+               ylabel='Transmission loss [dB]')
+        ax.legend(['wide', 'narrow'])
+
+        # Save or show plot:
+        if showPlot:
+            plt.show()
 
 
 if __name__ == "__main__":
