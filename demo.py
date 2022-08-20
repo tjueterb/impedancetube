@@ -6,6 +6,7 @@ from acoular import Calib, TimeSamples, PowerSpectra
 import sys
 sys.path.append('./src')
 from measurement import Measurement_E2611, MicSwitchCalib_E2611
+from tube import Tube_Transmission
 
 ##############################################################################
 # USER INPUT:
@@ -114,19 +115,30 @@ for filename_measurement in filenames_measurement:
     # use both narrow and wide microphone positions for lower and higher frequencies:
     for spacing in ['wide', 'narrow']:
         if spacing == 'narrow':
-            s1 = s2 = 0.085  # distance between mics
+            tube = Tube_Transmission(tube_shape='rect',
+                                     tube_d=0.1,
+                                     l1=0.3,   # distance between beginning of specimen and mic 2
+                                     l2=0.8,   # distance between beginning of specimen and mic 3
+                                     s1=0.085,  # Distance between mic 1 and 2
+                                     s2=0.085,  # Distance between mic 3 and 4
+                                     d=0.5)   # length of test specimen (test tube section is 0.7m))
             mic_channels = mic_channels_narrow  # indices of microphones #1-#4
 
         elif spacing == 'wide':
-            s1 = s2 = 0.5 # distance between mics
+            tube = Tube_Transmission(tube_shape='rect',
+                                     tube_d=0.1,
+                                     l1=0.3,   # distance between beginning of specimen and mic 2
+                                     l2=0.8,   # distance between beginning of specimen and mic 3
+                                     s1=0.5,  # Distance between mic 1 and 2
+                                     s2=0.5,  # Distance between mic 3 and 4
+                                     d=0.5)   # length of test specimen (test tube section is 0.7m))
             mic_channels = mic_channels_wide
 
         msm = Measurement_E2611(freq_data=freq_data,
-                        s1=s1,  # distance between mic #1 and #2
-                        s2=s2,  # distance between mic #3 and #4
-                        ref_channel=ref_channel,  # index of the reference microphone
-                        mic_channels=mic_channels, # indices of the microphones in positions 1-4
-                        H_c=H_c) # Amplitude/Phase Correction factors  
+                                tube=tube,
+                                ref_channel=ref_channel,  # index of the reference microphone
+                                mic_channels=mic_channels,  # indices of the microphones in positions 1-4
+                                H_c=H_c)  # Amplitude/Phase Correction factors
 
         # get fft frequencies
         freqs = msm.freq_data.fftfreq()

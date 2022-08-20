@@ -6,6 +6,8 @@ import numpy as np
 from numpy import exp, sin, pi, sqrt
 from traits.api import HasPrivateTraits, Property, Float, Trait, Delegate, Int, List, Array
 
+from tube import Tube_Transmission
+
 
 class Measurement(HasPrivateTraits):
     temperature = Float(default_value=20.)
@@ -61,7 +63,7 @@ class Measurement(HasPrivateTraits):
             [array]: size: (f x 1)
         """
         k = (2 * np.pi * self.freq_data.fftfreq() +
-             1j * 0.0194*(np.sqrt(self.freq_data.fftfreq()))/self.tube_d) / self.c
+             1j * 0.0194*(np.sqrt(self.freq_data.fftfreq()))/self.tube.tube_d) / self.c
         return k
 
     def _get_working_frequency_range(self):
@@ -72,22 +74,22 @@ class Measurement(HasPrivateTraits):
             tuple: lower and upper frequency limit
         """
         # distance between microphones:
-        s = min(self.s1, self.s2)
+        s = min(self.tube.s1, self.tube.s2)
         # Lower frequency limit:
         # NOTE: in ISO 10534-2, 5% is recommended instead of 1%
         f_lower = 0.05 * self.c / s
 
         # Upper frequency limit due to modes:
-        if self.tube_shape == 'rect':
+        if self.tube.tube_shape == 'rect':
             K = 0.5
-        elif self.tube_shape == 'circ':
+        elif self.tube.tube_shape == 'circ':
             K = 0.586
 
         # eq. (2)
-        f_upper_modes = K * self.c / self.tube_d
+        f_upper_modes = K * self.c / self.tube.tube_d
 
         # Upper frequency limit due to mic spacing (cf. 6.5.4):
-        s = max(self.s1, self.s2)
+        s = max(self.tube.s1, self.tube.s2)
         f_upper_spacing = 0.8 * self.c / (2 * s)
 
         f_upper = min(f_upper_modes, f_upper_spacing)
@@ -108,18 +110,7 @@ class Measurement_E2611(Measurement):
     Rect: l1 = 0.3, l2 = 0.8,  s1,s2 = 0.085 or 0.5
     circ: l1 = 0.2, l2 = 0.28, s1,s2 = 0.075 or 0.225
     '''
-    l1 = Float(0.3, desc='distance between beginning of specimen and mic 2')
-    l2 = Float(0.8, desc='distance between beginning of specimen and mic 3')
-    s1 = Float(0.085, desc='Distance between mic 1 and 2 in m')
-    s2 = Float(0.085, desc='Distance between mic 3 and 4 in m')
-    d = Float(0.5, desc='length of test specimen (test tube section is 0.7m)')
-
-
-    # Tube parameters
-    tube_shape = Trait('rect', 'circ',
-                       desc="Shape of the measurement tube")
-    tube_d = Float(0.1,
-                   desc="diameter or (if rectangular) largest section dimension of tube")
+    tube = Trait(Tube_Transmission)
     
     # channels of the microphones in the given freq_data object
     ref_channel = Int(0, desc="Channel index of the reference mic")
@@ -244,27 +235,27 @@ class Measurement_E2611(Measurement):
         with np.errstate(divide='ignore', invalid='ignore'):
             # Decompose wave field:
             # eq (17):
-            A = 1j * ((H[:, self.mic_channels[0]] * np.exp(-1j*self.k*(self.l1)) -
-                       H[:, self.mic_channels[1]] * np.exp(-1j*self.k*(self.l1+self.s1))) /
-                      (2 * np.sin(self.k*self.s1)))
+            A = 1j * ((H[:, self.mic_channels[0]] * np.exp(-1j*self.k*(self.tube.l1)) -
+                       H[:, self.mic_channels[1]] * np.exp(-1j*self.k*(self.tube.l1+self.tube.s1))) /
+                      (2 * np.sin(self.k*self.tube.s1)))
             # eq (18):
-            B = 1j * ((H[:, self.mic_channels[1]] * np.exp(+1j*self.k*(self.l1+self.s1)) -
-                       H[:, self.mic_channels[0]] * np.exp(+1j*self.k*(self.l1))) /
-                      (2 * np.sin(self.k*self.s1)))
+            B = 1j * ((H[:, self.mic_channels[1]] * np.exp(+1j*self.k*(self.tube.l1+self.tube.s1)) -
+                       H[:, self.mic_channels[0]] * np.exp(+1j*self.k*(self.tube.l1))) /
+                      (2 * np.sin(self.k*self.tube.s1)))
             # eq (19):
-            C = 1j * ((H[:, self.mic_channels[2]] * np.exp(+1j*self.k*(self.l2+self.s2)) -
-                       H[:, self.mic_channels[3]] * np.exp(+1j*self.k*(self.l2))) /
-                      (2 * np.sin(self.k*self.s2)))
+            C = 1j * ((H[:, self.mic_channels[2]] * np.exp(+1j*self.k*(self.tube.l2+self.tube.s2)) -
+                       H[:, self.mic_channels[3]] * np.exp(+1j*self.k*(self.tube.l2))) /
+                      (2 * np.sin(self.k*self.tube.s2)))
             # eq (20):
-            D = 1j * ((H[:, self.mic_channels[3]] * np.exp(-1j*self.k*(self.l2)) -
-                       H[:, self.mic_channels[2]] * np.exp(-1j*self.k*(self.l2+self.s2))) /
-                      (2 * np.sin(self.k*self.s2)))
+            D = 1j * ((H[:, self.mic_channels[3]] * np.exp(-1j*self.k*(self.tube.l2)) -
+                       H[:, self.mic_channels[2]] * np.exp(-1j*self.k*(self.tube.l2+self.tube.s2))) /
+                      (2 * np.sin(self.k*self.tube.s2)))
 
             # Calculate acoustic pressure and velocity on both faces of specimen:
             p0 = A + B
-            pd = C * np.exp(-1j*self.k*self.d) + D * np.exp(1j*self.k*self.d)
+            pd = C * np.exp(-1j*self.k*self.tube.d) + D * np.exp(1j*self.k*self.tube.d)
             u0 = (A-B) / (self.rho * self.c)
-            ud = ((C * np.exp(-1j*self.k*self.d) - D * np.exp(1j*self.k*self.d)) /
+            ud = ((C * np.exp(-1j*self.k*self.tube.d) - D * np.exp(1j*self.k*self.tube.d)) /
                   (self.rho * self.c))
 
         # calculate Transfer Matrix:
@@ -294,52 +285,52 @@ class Measurement_E2611(Measurement):
         with np.errstate(divide='ignore', invalid='ignore'):
             # Decompose wave field for first load case:
             # eq (17):
-            A_a = 1j * ((H_a[:, self.mic_channels[0]] * np.exp(-1j*self.k*(self.l1)) -
-                         H_a[:, self.mic_channels[1]] * np.exp(-1j*self.k*(self.l1+self.s1))) /
-                        (2 * np.sin(self.k*self.s1)))
+            A_a = 1j * ((H_a[:, self.mic_channels[0]] * np.exp(-1j*self.k*(self.tube.l1)) -
+                         H_a[:, self.mic_channels[1]] * np.exp(-1j*self.k*(self.tube.l1+self.tube.s1))) /
+                        (2 * np.sin(self.k*self.tube.s1)))
             # eq (18):
-            B_a = 1j * ((H_a[:, self.mic_channels[1]] * np.exp(+1j*self.k*(self.l1+self.s1)) -
-                         H_a[:, self.mic_channels[0]] * np.exp(+1j*self.k*(self.l1))) /
-                        (2 * np.sin(self.k*self.s1)))
+            B_a = 1j * ((H_a[:, self.mic_channels[1]] * np.exp(+1j*self.k*(self.tube.l1+self.tube.s1)) -
+                         H_a[:, self.mic_channels[0]] * np.exp(+1j*self.k*(self.tube.l1))) /
+                        (2 * np.sin(self.k*self.tube.s1)))
             # eq (19):
-            C_a = 1j * ((H_a[:, self.mic_channels[2]] * np.exp(+1j*self.k*(self.l2+self.s2)) -
-                         H_a[:, self.mic_channels[3]] * np.exp(+1j*self.k*(self.l2))) /
-                        (2 * np.sin(self.k*self.s2)))
+            C_a = 1j * ((H_a[:, self.mic_channels[2]] * np.exp(+1j*self.k*(self.tube.l2+self.tube.s2)) -
+                         H_a[:, self.mic_channels[3]] * np.exp(+1j*self.k*(self.tube.l2))) /
+                        (2 * np.sin(self.k*self.tube.s2)))
             # eq (20):
-            D_a = 1j * ((H_a[:, self.mic_channels[3]] * np.exp(-1j*self.k*(self.l2)) -
-                         H_a[:, self.mic_channels[2]] * np.exp(-1j*self.k*(self.l2+self.s2))) /
-                        (2 * np.sin(self.k*self.s2)))
+            D_a = 1j * ((H_a[:, self.mic_channels[3]] * np.exp(-1j*self.k*(self.tube.l2)) -
+                         H_a[:, self.mic_channels[2]] * np.exp(-1j*self.k*(self.tube.l2+self.tube.s2))) /
+                        (2 * np.sin(self.k*self.tube.s2)))
 
             # Calculate acoustic pressure and velocity on both faces of specimen:
             p0_a = A_a + B_a
-            pd_a = C_a * np.exp(-1j*self.k*self.d) + D_a * np.exp(1j*self.k*self.d)
+            pd_a = C_a * np.exp(-1j*self.k*self.tube.d) + D_a * np.exp(1j*self.k*self.tube.d)
             u0_a = (A_a-B_a) / (self.rho * self.c)
-            ud_a = ((C_a * np.exp(-1j*self.k*self.d) - D_a * np.exp(1j*self.k*self.d)) /
+            ud_a = ((C_a * np.exp(-1j*self.k*self.tube.d) - D_a * np.exp(1j*self.k*self.tube.d)) /
                     (self.rho * self.c))
 
             # Decompose wave field for second load case:
             # eq (17):
-            A_b = 1j * ((H_b[:, self.mic_channels[0]] * np.exp(-1j*self.k*(self.l1)) -
-                         H_b[:, self.mic_channels[1]] * np.exp(-1j*self.k*(self.l1+self.s1))) /
-                        (2 * np.sin(self.k*self.s1)))
+            A_b = 1j * ((H_b[:, self.mic_channels[0]] * np.exp(-1j*self.k*(self.tube.l1)) -
+                         H_b[:, self.mic_channels[1]] * np.exp(-1j*self.k*(self.tube.l1+self.tube.s1))) /
+                        (2 * np.sin(self.k*self.tube.s1)))
             # eq (18):
-            B_b = 1j * ((H_b[:, self.mic_channels[1]] * np.exp(+1j*self.k*(self.l1+self.s1)) -
-                         H_b[:, self.mic_channels[0]] * np.exp(+1j*self.k*(self.l1))) /
-                        (2 * np.sin(self.k*self.s1)))
+            B_b = 1j * ((H_b[:, self.mic_channels[1]] * np.exp(+1j*self.k*(self.tube.l1+self.tube.s1)) -
+                         H_b[:, self.mic_channels[0]] * np.exp(+1j*self.k*(self.tube.l1))) /
+                        (2 * np.sin(self.k*self.tube.s1)))
             # eq (19):
-            C_b = 1j * ((H_b[:, self.mic_channels[2]] * np.exp(+1j*self.k*(self.l2+self.s2)) -
-                         H_b[:, self.mic_channels[3]] * np.exp(+1j*self.k*(self.l2))) /
-                        (2 * np.sin(self.k*self.s2)))
+            C_b = 1j * ((H_b[:, self.mic_channels[2]] * np.exp(+1j*self.k*(self.tube.l2+self.tube.s2)) -
+                         H_b[:, self.mic_channels[3]] * np.exp(+1j*self.k*(self.tube.l2))) /
+                        (2 * np.sin(self.k*self.tube.s2)))
             # eq (20):
-            D_b = 1j * ((H_b[:, self.mic_channels[3]] * np.exp(-1j*self.k*(self.l2)) -
-                         H_b[:, self.mic_channels[2]] * np.exp(-1j*self.k*(self.l2+self.s2))) /
-                        (2 * np.sin(self.k*self.s2)))
+            D_b = 1j * ((H_b[:, self.mic_channels[3]] * np.exp(-1j*self.k*(self.tube.l2)) -
+                         H_b[:, self.mic_channels[2]] * np.exp(-1j*self.k*(self.tube.l2+self.tube.s2))) /
+                        (2 * np.sin(self.k*self.tube.s2)))
 
             # Calculate acoustic pressure and velocity on both faces of specimen:
             p0_b = A_b + B_b
-            pd_b = C_b * np.exp(-1j*self.k*self.d) + D_b * np.exp(1j*self.k*self.d)
+            pd_b = C_b * np.exp(-1j*self.k*self.tube.d) + D_b * np.exp(1j*self.k*self.tube.d)
             u0_b = (A_b-B_b) / (self.rho * self.c)
-            ud_b = ((C_b * np.exp(-1j*self.k*self.d) - D_b * np.exp(1j*self.k*self.d)) /
+            ud_b = ((C_b * np.exp(-1j*self.k*self.tube.d) - D_b * np.exp(1j*self.k*self.tube.d)) /
                     (self.rho * self.c))
 
             # calculate Transfer Matrix:
@@ -365,7 +356,7 @@ class Measurement_E2611(Measurement):
         # Transmission Coefficient (anechoic backed) (eq (25)):
         # Disable divide by zero warning because first entry of k is always 0
         with np.errstate(divide='ignore', invalid='ignore'):
-            t = (2 * np.exp(1j*self.k*self.d) /
+            t = (2 * np.exp(1j*self.k*self.tube.d) /
                  (T[:, 0, 0] +
                   T[:, 0, 1] / (self.rho * self.c) +
                   T[:, 1, 0] * (self.rho * self.c) +
@@ -457,7 +448,7 @@ class Measurement_E2611(Measurement):
 
         # Disable divide by zero warning because first entry of k is always 0
         with np.errstate(divide='ignore', invalid='ignore'):
-            return 1 / self.d * np.arccos(T[:, 0, 0])
+            return 1 / self.tube.d * np.arccos(T[:, 0, 0])
 
     def _get_z(self):
         """Calculate Characteristic Impedance in material
