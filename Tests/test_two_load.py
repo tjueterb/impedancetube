@@ -215,4 +215,4 @@ def test_two_load_method():
 
 if __name__ == "__main__":
     test_two_load_method()
-    print("Everything passed")
+    print("\nEverything passed!\n")
