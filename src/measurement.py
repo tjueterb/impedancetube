@@ -24,6 +24,8 @@ class Measurement(HasPrivateTraits):
     freq_data = Trait(PowerSpectra,
                       desc="power spectra object")
 
+    tube = Trait(Tube_Transmission)
+    
     # wave number vector:
     k = Property(depends_on=['freq_data'])
 
@@ -110,7 +112,6 @@ class Measurement_E2611(Measurement):
     Rect: l1 = 0.3, l2 = 0.8,  s1,s2 = 0.085 or 0.5
     circ: l1 = 0.2, l2 = 0.28, s1,s2 = 0.075 or 0.225
     '''
-    tube = Trait(Tube_Transmission)
     
     # channels of the microphones in the given freq_data object
     ref_channel = Int(0, desc="Channel index of the reference mic")
