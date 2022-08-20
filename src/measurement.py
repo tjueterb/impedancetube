@@ -25,32 +25,9 @@ class Measurement(HasPrivateTraits):
     # wave number vector:
     k = Property(depends_on=['freq_data'])
 
-    # transmission coefficient:
-    transmission_coefficient = Property()
-
-    # Transmission loss:
-    transmission_loss = Property()
-
-    # Reflection coefficient:
-    reflection_coefficient = Property()
-
-    # Reflection coefficient (hard backed):
-    reflection_coefficient_hard_backed = Property()
-
-    # Absorption coefficient (anechoic):
-    absorption_coefficient = Property()
-
-    # Absorption coefficient (hard backed):
-    absorption_coefficient_hard_backed = Property()
-
-    # Propagation wavenumber in material:
-    propagation_wavenumber = Property()
-
     # Working frequency range:
     working_frequency_range = Property()
 
-    # Characteristic Impedance in material:
-    z = Property()
 
     def _get_c(self):
         """Calculates speed of sound from temperature
@@ -164,6 +141,30 @@ class Measurement_E2611(Measurement):
     transfer_matrix_one_load = Property(desc='Transfer Matrix for one load')
     transfer_matrix_two_load = Property(desc='Transfer Matrix for two loads')
 
+    # transmission coefficient:
+    transmission_coefficient = Property()
+    
+    # Transmission loss:
+    transmission_loss = Property()
+
+    # Characteristic Impedance in material:
+    z = Property()
+    
+    # Reflection coefficient:
+    reflection_coefficient = Property()
+
+    # Reflection coefficient (hard backed):
+    reflection_coefficient_hard_backed = Property()
+
+    # Absorption coefficient (anechoic):
+    absorption_coefficient = Property()
+
+    # Absorption coefficient (hard backed):
+    absorption_coefficient_hard_backed = Property()
+
+    # Propagation wavenumber in material:
+    propagation_wavenumber = Property()
+    
     # Choose one load or two load method:
     method = Trait('one load', 'two load',
                    default_value='one load',
