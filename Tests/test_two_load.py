@@ -57,7 +57,6 @@ def test_two_load_method():
 
     # Parameters for plot:
     showPlot = False
-    plotpath = './Plots'
 
     ##############################################################################
     # CALCULATION: No user input from here on

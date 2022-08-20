@@ -15,6 +15,9 @@ class Measurement(HasPrivateTraits):
     rho = Property(depends_on=['temperature', 'atmospheric_pressure'],
                    desc='air density')
 
+    # Block size
+    block_size = Delegate('freq_data')
+    
     # Tube dimensions
     '''
     Values for the TAP ducts:
@@ -27,8 +30,6 @@ class Measurement(HasPrivateTraits):
     s2 = Float(0.085, desc='Distance between mic 3 and 4 in m')
     d = Float(0.5, desc='length of test specimen (test tube section is 0.7m)')
 
-    # Block size
-    block_size = Delegate('freq_data')
 
     # Tube parameters
     tube_shape = Trait('rect', 'circ',
