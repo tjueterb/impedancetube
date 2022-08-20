@@ -3,8 +3,10 @@ from os import mkdir
 import matplotlib.pyplot as plt
 import numpy as np
 from acoular import Calib, TimeSamples, PowerSpectra
+import sys
+sys.path.append('./src')
 
-from pyTransmission import Measurement_E2611, MicSwitchCalib_E2611
+from measurement import Measurement_E2611, MicSwitchCalib_E2611
 
 ##############################################################################
 # USER INPUT:

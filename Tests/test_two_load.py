@@ -6,8 +6,9 @@ from acoular import Calib, TimeSamples, PowerSpectra
 from pathlib import Path
 import sys
 sys.path.append('..')
+sys.path.append('../src')
 
-from pyTransmission import Measurement_E2611, MicSwitchCalib_E2611
+from measurement import Measurement_E2611, MicSwitchCalib_E2611
 
 def test_two_load_method():
     ##############################################################################
