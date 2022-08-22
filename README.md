@@ -1,4 +1,4 @@
-# pyTransmission
+# impedancetube
 A routine to calculate plane wave transmission loss in the rectangular and circular tubes following [ASTM E2611](https://dx.doi.org/10.1520/E2611-19)
 
 Dependencies: [acoular](http://acoular.org/), [numpy](http://numpy.org), [traits](https://docs.enthought.com/traits/traits_user_manual/intro.html). [matplotlib](https://matplotlib.org) is recommended but not required.
