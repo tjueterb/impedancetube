@@ -53,8 +53,8 @@ setup(name="impedancetube",
           'Programming Language :: Python :: 3.9',
       ],
       keywords='acoustic impedance transmission tube microphone measurement',
-      packages=find_packages('src'),
-      package_dir={'': 'src'},
+      packages=['impedancetube'],
+    #   package_dir={'': 'src'},
 
       install_requires=install_requires,
 
