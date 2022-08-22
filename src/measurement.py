@@ -500,10 +500,10 @@ class MicSwitchCalib_E2611(HasPrivateTraits):
         # H_1 = H_2 = H_c = np.zeros((csm.shape[0]), dtype=complex)  # create empty array
 
         H_1 = csm[:, self.test_channel, self.ref_channel] / \
-            csm[:, self.ref_channel, self.ref_channel]
+              csm[:, self.ref_channel, self.ref_channel]
 
         H_2 = csm_switched[:, self.test_channel, self.ref_channel] / \
-            csm_switched[:, self.ref_channel, self.ref_channel]
+              csm_switched[:, self.ref_channel, self.ref_channel]
 
         H_c = np.sqrt(H_1 * H_2)
 
