@@ -1,14 +1,15 @@
-# pyTransmission
-A routine to calculate plane wave transmission loss in the rectangular tube at the TAP
+# impedancetube
+A routine to calculate plane wave transmission loss in the rectangular and circular tubes following [ASTM E2611](https://dx.doi.org/10.1520/E2611-19)
 
-Dependencies: [acoular](http://acoular.org/), [numpy](http://numpy.org). For demo.py you also need [matplotlib](https://matplotlib.org).
+Dependencies: [acoular](http://acoular.org/), [numpy](http://numpy.org), [traits](https://docs.enthought.com/traits/traits_user_manual/intro.html). [matplotlib](https://matplotlib.org) is recommended but not required.
 
 Using conda, you can install the needed packages into your environment with these commands:
 
 ```
 conda install -c acoular acoular
-conda install numpy matplotlib
+conda install numpy matplotlib traits
 ```
+
 I recommend doing the measurements as described here and modifying the demo.py script for evaluation. The demo.py assumes that you are measuring with 6 microphones simultaneously and that you are using the first microphone (nearest to the sound source) as the reference. At the end of this instruction you can find more detailed instructions if your measurements are done with custom configurations.
 
 ## How to measure
