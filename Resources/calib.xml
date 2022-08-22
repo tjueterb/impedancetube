@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Calib name="2021-06-10">
-	<pos Name="Point AnalogInput_001" factor="1.0283067611828827"/>
-	<pos Name="Point AnalogInput_002" factor="1.2560874930376205"/>
-	<pos Name="Point AnalogInput_003" factor="1.5733128556501126"/>
-	<pos Name="Point AnalogInput_004" factor="1.1486549575716078"/>
-	<pos Name="Point AnalogInput_005" factor="1.1034396649439515"/>
-	<pos Name="Point AnalogInput_006" factor="1.2450614636629556"/>
-</Calib>

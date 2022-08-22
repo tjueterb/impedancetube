@@ -3,18 +3,14 @@ from os import mkdir
 import matplotlib.pyplot as plt
 import numpy as np
 from acoular import Calib, TimeSamples, PowerSpectra
-
-from pyTransmission import Measurement_E2611, MicSwitchCalib_E2611
+import sys
+sys.path.append('./src') # if you run this from the /examples directory, change to '../src'
+from measurement import Measurement_E2611, MicSwitchCalib_E2611
+from tube import Tube_Transmission
 
 ##############################################################################
 # USER INPUT:
 ##############################################################################
-
-# ---------------- Amplitude Calibration (with regular calibrator) -----------
-# (use create_calib_factor_xml_file.py to convert raw csv files to xml):
-calibpath = './Resources'
-calibfile = 'calib.xml'
-calibration = Calib(from_file=join(calibpath, calibfile))
 
 # ---------------- Amplitude and Phase Correction Measurements ---------------
 # relative path of the time data files (.h5 data format)
@@ -61,7 +57,7 @@ plotpath = './Plots'
 # ---------------- Amplitude and Phase Correction  ---------------------------
 
 # get timedata of direct configuration:
-time_data = TimeSamples(name=join(soundfilepath, filename_direct), calib=calibration)
+time_data = TimeSamples(name=join(soundfilepath, filename_direct))
 
 # get frequency data / csm of direct configuration:
 freq_data = PowerSpectra(time_data=time_data,
@@ -77,7 +73,7 @@ H_c = np.ones((freq_data.csm.shape[0:2]), dtype=complex)
 # iterate over all switched configurations:
 for i in filenames_switched:
     # get timedata of switched configuration:
-    time_data_switched = TimeSamples(name=join(soundfilepath, filenames_switched[i]), calib=calibration)
+    time_data_switched = TimeSamples(name=join(soundfilepath, filenames_switched[i]))
 
     # get frequency data of switched configuration:
     freq_data_switched = PowerSpectra(time_data=time_data_switched,
@@ -98,8 +94,7 @@ for i in filenames_switched:
 # ---------------- Measurement  ----------------------------------------------
 # iterate over all measurements
 for filename_measurement in filenames_measurement:
-    td = TimeSamples(name=join(soundfilepath, filename_measurement), 
-                     calib=calibration)
+    td = TimeSamples(name=join(soundfilepath, filename_measurement))
 
     # get frequency data / csm:
     freq_data = PowerSpectra(time_data=td,
@@ -113,19 +108,30 @@ for filename_measurement in filenames_measurement:
     # use both narrow and wide microphone positions for lower and higher frequencies:
     for spacing in ['wide', 'narrow']:
         if spacing == 'narrow':
-            s1 = s2 = 0.085  # distance between mics
+            tube = Tube_Transmission(tube_shape='rect',
+                                     tube_d=0.1,
+                                     l1=0.3,   # distance between beginning of specimen and mic 2
+                                     l2=0.8,   # distance between beginning of specimen and mic 3
+                                     s1=0.085,  # Distance between mic 1 and 2
+                                     s2=0.085,  # Distance between mic 3 and 4
+                                     d=0.5)   # length of test specimen (test tube section is 0.7m))
             mic_channels = mic_channels_narrow  # indices of microphones #1-#4
 
         elif spacing == 'wide':
-            s1 = s2 = 0.5 # distance between mics
+            tube = Tube_Transmission(tube_shape='rect',
+                                     tube_d=0.1,
+                                     l1=0.3,   # distance between beginning of specimen and mic 2
+                                     l2=0.8,   # distance between beginning of specimen and mic 3
+                                     s1=0.5,  # Distance between mic 1 and 2
+                                     s2=0.5,  # Distance between mic 3 and 4
+                                     d=0.5)   # length of test specimen (test tube section is 0.7m))
             mic_channels = mic_channels_wide
 
         msm = Measurement_E2611(freq_data=freq_data,
-                        s1=s1,  # distance between mic #1 and #2
-                        s2=s2,  # distance between mic #3 and #4
-                        ref_channel=ref_channel,  # index of the reference microphone
-                        mic_channels=mic_channels, # indices of the microphones in positions 1-4
-                        H_c=H_c) # Amplitude/Phase Correction factors  
+                                tube=tube,
+                                ref_channel=ref_channel,  # index of the reference microphone
+                                mic_channels=mic_channels,  # indices of the microphones in positions 1-4
+                                H_c=H_c)  # Amplitude/Phase Correction factors
 
         # get fft frequencies
         freqs = msm.freq_data.fftfreq()
