@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 from os.path import join, abspath, dirname
 import os
 
-bf_version = "0.2"
+bf_version = "0.2.1"
 bf_author = "Tobias Jüterbock"
 bf_email = "a.jueterbock@tu-berlin.de"
 
