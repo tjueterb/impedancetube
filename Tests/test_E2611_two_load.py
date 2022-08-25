@@ -1,16 +1,19 @@
-from os.path import join, isdir
-from os import mkdir
-import matplotlib.pyplot as plt
-import numpy as np
-from acoular import Calib, TimeSamples, PowerSpectra
+from os.path import join
 from pathlib import Path
-
+import numpy as np
+import matplotlib.pyplot as plt
+from acoular import TimeSamples, PowerSpectra
+import sys
+from warnings import warn
 try:
     # if directory is the root directory:
+    # adding '.' to the path seems to be necessary for debugging this file in VS Code
+    sys.path.append('.')
     import impedancetube as imp
+    warn('Run this from the file directory for the relative paths to the .h5 files to work. (or adjust soundfilepath and reference_data_path)\n')
+
 except:
     # if directory is test directory:
-    import sys
     sys.path.append('..')
     import impedancetube as imp
 
@@ -29,7 +32,7 @@ def test_two_load_method():
 
     # filename of empty measurement with direct configuration:
     filename_direct = 'empty_00_11_22_33_44_55.h5'
-    #channels of switched mic and filenames of measurements with switched configurations
+    # channels of switched mic and filenames of measurements with switched configurations
     filenames_switched = {1: 'empty_01_10_22_33_44_55.h5',  # <- here 2nd mic (index 1) was switched w/ ref (index 0)
                           2: 'empty_02_11_20_33_44_55.h5',
                           3: 'empty_03_11_22_30_44_55.h5',
@@ -159,7 +162,7 @@ def test_two_load_method():
                                          mic_channels=mic_channels,  # indices of the microphones in positions 1-4
                                          H_c=H_c)  # Amplitude/Phase Correction factors
 
-            #switched first and second load case
+            # switched first and second load case
             msm2 = imp.Measurement_E2611(freq_data=freq_data_two_load,
                                          freq_data_two_load=freq_data_one_load,
                                          method='two load',
