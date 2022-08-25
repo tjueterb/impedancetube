@@ -15,12 +15,8 @@ I recommend doing the measurements as described here and modifying the demo.py s
 ## How to measure
 ![Measurement Setup](https://github.com/tjueterb/pyTransmission/blob/main/Resources/Measurement_setup.png?raw=true)
 
-
-### Calibration 
-Calibrate the 6 microphones using a calibrator and store the results in a .csv file. See calib.csv for a simple file with calibration levels, you can use **create\_calib\_factor\_xml\_file.py** to convert a .csv file into an .xml file that works with acoular. (Not sure if this calibration is really necessary because we'll do the amplitude/phase correction in the next step anyway) 
-
 ### Switched Microphone Measurements
-Now we will need to make measurement in the empty tube with an anechoic back end. These will be used to calculate amplitude and phase correction factors between the microphones. For the direct configuration, route the microphones as shown in the figure above. Recommended measuring time is 60s.
+First, we will need to make measurement in the empty tube with an anechoic back end. These will be used to calculate amplitude and phase correction factors between the microphones. For the direct configuration, route the microphones as shown in the figure above. Recommended measuring time is 60s.
 
 For the switched configurations, switch the microphone positions **without un- and replugging the cables**. For example: This would be the routing for the switched configuration of microphones 0 and 1:
 
