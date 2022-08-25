@@ -1,18 +1,19 @@
 # impedancetube
-A routine to calculate plane wave transmission loss in the rectangular and circular tubes following [ASTM E2611](https://dx.doi.org/10.1520/E2611-19)
+A routine to calculate plane wave transmission loss in rectangular and circular tubes following [ASTM E2611](https://dx.doi.org/10.1520/E2611-19)
 
 Dependencies: [acoular](http://acoular.org/), [numpy](http://numpy.org), [traits](https://docs.enthought.com/traits/traits_user_manual/intro.html). [matplotlib](https://matplotlib.org) is recommended but not required.
 
-Using conda, you can install the needed packages into your environment with these commands:
+Using conda and pip, you can install the required packages into your environment with these commands:
 
 ```
 conda install -c acoular acoular
-conda install numpy matplotlib traits
+conda install matplotlib
+pip install impedancetube
 ```
 
-I recommend doing the measurements as described here and modifying the demo.py script for evaluation. The demo.py assumes that you are measuring with 6 microphones simultaneously and that you are using the first microphone (nearest to the sound source) as the reference. At the end of this instruction you can find more detailed instructions if your measurements are done with custom configurations.
+I recommend doing the measurements as described here and modifying the example script for evaluation. The scripts assume that you are measuring with 6 microphones simultaneously and that you are using the first microphone (nearest to the sound source) as the reference. At the end of this instruction you can find more detailed instructions if your measurements are done with custom configurations.
 
-## How to measure
+## How to measure (E2611 one load method)
 ![Measurement Setup](https://github.com/tjueterb/pyTransmission/blob/main/Resources/Measurement_setup.png?raw=true)
 
 ### Switched Microphone Measurements
@@ -36,12 +37,13 @@ Afterwards, don't forget to bring the microphones back into their original order
 
 ### Measurements
 Insert your test specimen(s) and do your measurement(s)
+For the two-load method, use two different tube terminations as described in [ASTM E2611](https://dx.doi.org/10.1520/E2611-19).
 
-## How do modify demo.py for your measurements
-The easiest way to evaluate measurements is taking the demo.py file and modifying it to use your freshly done measurements. Here's how:
+## How do modify the example scripts for your measurements
+The easiest way to evaluate measurements is taking the example scripts from the Examples folder and modifying them to use your measurements. Here, the process is explained exemplary for the E2611 one-load method
 
 ### Put the files where you need them:
-Clone/download this repository. 
+Clone/download this repository. Open `Examples/example_E2611_one_load.py`.
 
 #### Audio Files
 For the easiest workflow, copy all your audio (.h5) files into the Resources directory. Alternatively you can modify `soundfilepath = './Resources/'` to match the path where all your audio files are.
@@ -95,86 +97,7 @@ savePlot = True
 plotpath = './Plots'
 ```
 
-If you did everything so far correctly an run the script, you should get a plot of the transmission loss in dB for each measurement.
+When you run the script, you should get a plot of the transmission loss in dB for each measurement.
 
-
-## Documentation of the Measurement class
-
-Import pyTransmission (if you just use the source code you need to work in the same directory or add the pyTransmission folder to your path).
-
-```python
-import sys
-sys.path.append('path_to/pyTransmission')
-from measurement import Measurement
-```
-
-The Measurement class expects a PowerSpectra object as input for the frequency data. See the acoular documentation for more details. Hanning window is required in the norm, a large blocksize is recommended for precision.
-
-```python
-from acoular import TimeSamples, PowerSpectra
-
-time_data = TimeSamples(name='path/file.h5')
-freq_data = PowerSpectra(time_data=time_data,
-                         block_size=4*2048,
-                         window='Hanning')
-```  
-
-Create your Measurement object and supply it with the frequency data. Set the tube-specific settings using the `Tube_Transmission` class (more information below). Set the reference channel (usually the microphone closest to the sound source) and the channels of the microphones in the positions 1-4 (see picture below for an overview and keep in mind that python starts indexing at 0). 
-
-```python
-msm = Measurement(freq_data=freq_data,
-                  tube = tube,
-                  ref_channel=0,
-                  mic_channels=[0, 1, 2, 3])
-```
-
-![setup](https://github.com/tjueterb/pyTransmission/blob/eac49d54ffd6a800107fd2fae0760da1ad3355f4/Resources/Measurement_setup.png?raw=true)
-
-Get the FFT frequencies:
-
-```python
-freqs = msm.freq_data.fftfreq()
-```
-
-Get the frequency dependent plane wave incident transmission loss:
-
-```python
-TL = msm.transmission_loss
-```
-
-Get the working frequency range (lower and upper limits of where the measurement is valid, dependent on the microphone spacing)
-
-```python
-f_low, f_high = msm.working_frequency_range
-```
-
-Plot the transmission loss only for the valid frequencies:
-
-```python
-import numpy as np
-import matplotlib.pyplot as plt
-
-idx = np.logical_and(freqs >= f_low, freqs <= f_high)
-plt.plot(freqs[idx], TL[idx])
-```
-Some other traits you can set and their default values:
-`temperature=20.`, `atmospheric_pressure=101.325`, `l1=0.3`, `l2=0.8`, `d=0.5`
-
-Get a list of all traits with `msm.trait_names()`
-
-## Documentation of the Tube Class
-
-The Tube class and it's subclasses are used to define the tube shape and dimensions. For a E2611 transmission measurement use the `Tube_Transmission` class. The properties are defined as follows:
-
-```python
-tube = Tube_Transmission(tube_shape='rect',
-                                     tube_d=0.1,
-                                     l1=0.3,
-                                     l2=0.8,
-                                     s1=0.085,
-                                     s2=0.085,
-                                     d=0.5))
-```
-See the figure up top for the length definitions. The `tube_shape` can be `'rect'` for rectangular tubes or `'circ'` for round tubes. `tube_d` defines the diameter or (if rectangular) largest section dimension of the tube.
 
 <!---This is how to do latex equations in markdown: <img src="https://render.githubusercontent.com/render/math?math=e^{i \pi} = -1">---> 
