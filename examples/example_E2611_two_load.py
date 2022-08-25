@@ -3,18 +3,7 @@ from os import mkdir
 import matplotlib.pyplot as plt
 import numpy as np
 from acoular import TimeSamples, PowerSpectra
-import sys
-
-try:
-    # if directory is the root directory:
-    # adding '.' to the path seems to be necessary for debugging this file in VS Code
-    sys.path.append('.')
-    import impedancetube as imp
-
-except:
-    # if directory is test directory:
-    sys.path.append('..')
-    import impedancetube as imp
+import impedancetube as imp
 
 ##############################################################################
 # USER INPUT:
