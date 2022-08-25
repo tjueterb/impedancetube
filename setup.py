@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 from os.path import join, abspath, dirname
 import os
 
-bf_version = "0.2.3"
+bf_version = "0.2.5"
 bf_author = "Tobias Jüterbock"
 bf_email = "a.jueterbock@tu-berlin.de"
 
@@ -44,7 +44,7 @@ setup(name="impedancetube",
       author=bf_author,
       author_email=bf_email,
       classifiers=[
-          'Development Status :: 4 - Beta',
+          'Development Status :: 3 - Alpha',
           'Intended Audience :: Education',
           'Intended Audience :: Science/Research',
           'Topic :: Scientific/Engineering :: Physics',
