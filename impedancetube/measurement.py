@@ -6,7 +6,7 @@ import numpy as np
 from numpy import exp, sin, pi, sqrt
 from traits.api import HasPrivateTraits, Property, Float, Trait, Delegate, Int, List, Array
 
-from tube import Tube_Transmission
+from .tube import Tube_Transmission
 
 
 class Measurement(HasPrivateTraits):

@@ -1,21 +1,29 @@
-from os.path import join, isdir
-from os import mkdir
-import matplotlib.pyplot as plt
-import numpy as np
-from acoular import Calib, TimeSamples, PowerSpectra
+from os.path import join
 from pathlib import Path
+import numpy as np
+import matplotlib.pyplot as plt
+from acoular import TimeSamples, PowerSpectra
 import sys
-sys.path.append('..')
-sys.path.append('../src')
+from warnings import warn
+try:
+    # if directory is the root directory:
+    # adding '.' to the path seems to be necessary for debugging this file in VS Code
+    sys.path.append('.')
+    import impedancetube as imp
+    warn('Run this from the file directory for the relative paths to the .h5 files to work. (or adjust soundfilepath and reference_data_path)\n')
 
-from measurement import Measurement_E2611, MicSwitchCalib_E2611
-from tube import Tube_Transmission
+except:
+    # if directory is test directory:
+    sys.path.append('..')
+    import impedancetube as imp
+
 
 def test_two_load_method():
     ##############################################################################
     # USER INPUT:
     ##############################################################################
-    reference_data_path = './reference_data_two_load' # path for .npy files with reference data
+    # path for .npy files with reference data
+    reference_data_path = './reference_data_two_load'
     Path(reference_data_path).mkdir(parents=True, exist_ok=True)
 
     # ---------------- Amplitude and Phase Correction Measurements ---------------
@@ -24,7 +32,7 @@ def test_two_load_method():
 
     # filename of empty measurement with direct configuration:
     filename_direct = 'empty_00_11_22_33_44_55.h5'
-    #channels of switched mic and filenames of measurements with switched configurations
+    # channels of switched mic and filenames of measurements with switched configurations
     filenames_switched = {1: 'empty_01_10_22_33_44_55.h5',  # <- here 2nd mic (index 1) was switched w/ ref (index 0)
                           2: 'empty_02_11_20_33_44_55.h5',
                           3: 'empty_03_11_22_30_44_55.h5',
@@ -92,22 +100,23 @@ def test_two_load_method():
                                           cached=freq_data.cached)
 
         # calculate amplitude/phase correction for switched channel:
-        calib = MicSwitchCalib_E2611(freq_data=freq_data,
-                                     freq_data_switched=freq_data_switched,
-                                     ref_channel=0,
-                                     test_channel=i)
+        calib = imp.MicSwitchCalib_E2611(freq_data=freq_data,
+                                         freq_data_switched=freq_data_switched,
+                                         ref_channel=0,
+                                         test_channel=i)
 
         # store result:
         H_c[:, i] = calib.H_c
-
 
     # ---------------- Measurement  ----------------------------------------------
     # iterate over all measurements
     for filename_measurement_one_load, filename_measurement_two_load in zip(filenames_measurement_one_load,
                                                                             filenames_measurement_two_load):
-        td_one_load = TimeSamples(name=join(soundfilepath, filename_measurement_one_load))
+        td_one_load = TimeSamples(
+            name=join(soundfilepath, filename_measurement_one_load))
 
-        td_two_load = TimeSamples(name=join(soundfilepath, filename_measurement_two_load))
+        td_two_load = TimeSamples(
+            name=join(soundfilepath, filename_measurement_two_load))
 
         # get frequency data / csm:
         freq_data_one_load = PowerSpectra(time_data=td_one_load,
@@ -126,89 +135,94 @@ def test_two_load_method():
         # use both narrow and wide microphone positions for lower and higher frequencies:
         for spacing in ['wide', 'narrow']:
             if spacing == 'narrow':
-                tube = Tube_Transmission(tube_shape='rect',
-                                         tube_d=0.1,
-                                         l1=0.3,   # distance between beginning of specimen and mic 2
-                                         l2=0.8,   # distance between beginning of specimen and mic 3
-                                         s1=0.085,  # Distance between mic 1 and 2
-                                         s2=0.085,  # Distance between mic 3 and 4
-                                         d=0.5)   # length of test specimen (test tube section is 0.7m))
+                tube = imp.Tube_Transmission(tube_shape='rect',
+                                             tube_d=0.1,
+                                             l1=0.3,   # distance between beginning of specimen and mic 2
+                                             l2=0.8,   # distance between beginning of specimen and mic 3
+                                             s1=0.085,  # Distance between mic 1 and 2
+                                             s2=0.085,  # Distance between mic 3 and 4
+                                             d=0.5)   # length of test specimen (test tube section is 0.7m))
                 mic_channels = mic_channels_narrow  # indices of microphones #1-#4
 
             elif spacing == 'wide':
-                tube = Tube_Transmission(tube_shape='rect',
-                                         tube_d=0.1,
-                                         l1=0.3,   # distance between beginning of specimen and mic 2
-                                         l2=0.8,   # distance between beginning of specimen and mic 3
-                                         s1=0.5,  # Distance between mic 1 and 2
-                                         s2=0.5,  # Distance between mic 3 and 4
-                                         d=0.5)   # length of test specimen (test tube section is 0.7m))
+                tube = imp.Tube_Transmission(tube_shape='rect',
+                                             tube_d=0.1,
+                                             l1=0.3,   # distance between beginning of specimen and mic 2
+                                             l2=0.8,   # distance between beginning of specimen and mic 3
+                                             s1=0.5,  # Distance between mic 1 and 2
+                                             s2=0.5,  # Distance between mic 3 and 4
+                                             d=0.5)   # length of test specimen (test tube section is 0.7m))
                 mic_channels = mic_channels_wide
 
-            msm1 = Measurement_E2611(freq_data=freq_data_one_load,
-                                     freq_data_two_load=freq_data_two_load,
-                                     method='two load',
-                                     tube=tube,
-                                     ref_channel=ref_channel,  # index of the reference microphone
-                                     mic_channels=mic_channels,  # indices of the microphones in positions 1-4
-                                     H_c=H_c)  # Amplitude/Phase Correction factors
+            msm1 = imp.Measurement_E2611(freq_data=freq_data_one_load,
+                                         freq_data_two_load=freq_data_two_load,
+                                         method='two load',
+                                         tube=tube,
+                                         ref_channel=ref_channel,  # index of the reference microphone
+                                         mic_channels=mic_channels,  # indices of the microphones in positions 1-4
+                                         H_c=H_c)  # Amplitude/Phase Correction factors
 
-            #switched first and second load case
-            msm2 = Measurement_E2611(freq_data=freq_data_two_load,
-                                     freq_data_two_load=freq_data_one_load,
-                                     method='two load',
-                                     tube=tube,
-                                     ref_channel=ref_channel,  # index of the reference microphone
-                                     mic_channels=mic_channels,  # indices of the microphones in positions 1-4
-                                     H_c=H_c)  # Amplitude/Phase Correction factors
+            # switched first and second load case
+            msm2 = imp.Measurement_E2611(freq_data=freq_data_two_load,
+                                         freq_data_two_load=freq_data_one_load,
+                                         method='two load',
+                                         tube=tube,
+                                         ref_channel=ref_channel,  # index of the reference microphone
+                                         mic_channels=mic_channels,  # indices of the microphones in positions 1-4
+                                         H_c=H_c)  # Amplitude/Phase Correction factors
 
             # get fft frequencies
             freqs1 = msm1.freq_data.fftfreq()
             freqs2 = msm2.freq_data.fftfreq()
             # np.save(f'{reference_data_path}/freqs_{spacing}', freqs1)
             assert(np.allclose(freqs1, freqs2, equal_nan=True))
-            assert(np.allclose(freqs1, np.load(f'{reference_data_path}/freqs_{spacing}.npy'), equal_nan=True))
-            
+            assert(np.allclose(freqs1, np.load(
+                f'{reference_data_path}/freqs_{spacing}.npy'), equal_nan=True))
 
             # get transfer_matric
             T1 = msm1.transfer_matrix
             T2 = msm2.transfer_matrix
             # np.save(f'{reference_data_path}/transfer_matrix_{spacing}', T1)
             assert(np.allclose(T1, T2, equal_nan=True))
-            assert(np.allclose(T1, np.load(f'{reference_data_path}/transfer_matrix_{spacing}.npy'), equal_nan=True))
+            assert(np.allclose(T1, np.load(
+                f'{reference_data_path}/transfer_matrix_{spacing}.npy'), equal_nan=True))
 
             # get transmission factor
             t1 = msm1.transmission_coefficient
             t2 = msm2.transmission_coefficient
             # np.save(f'{reference_data_path}/transmission_coefficient_{spacing}', t1)
             assert(np.allclose(t1, t2, equal_nan=True))
-            assert(np.allclose(t1, np.load(f'{reference_data_path}/transmission_coefficient_{spacing}.npy'), equal_nan=True))
+            assert(np.allclose(t1, np.load(
+                f'{reference_data_path}/transmission_coefficient_{spacing}.npy'), equal_nan=True))
 
             # calculate transmission loss
             transmission_loss1 = msm1.transmission_loss
             transmission_loss2 = msm2.transmission_loss
             # np.save(f'{reference_data_path}/transmission_loss_{spacing}', transmission_loss1)
             assert(np.allclose(transmission_loss1,
-                    transmission_loss2, equal_nan=True))
-            assert(np.allclose(transmission_loss1, np.load(f'{reference_data_path}/transmission_loss_{spacing}.npy'), equal_nan=True))
+                               transmission_loss2, equal_nan=True))
+            assert(np.allclose(transmission_loss1, np.load(
+                f'{reference_data_path}/transmission_loss_{spacing}.npy'), equal_nan=True))
 
             # if needed: calculate Impedance, plotting is the same
             z1 = msm1.z
             z2 = msm2.z
             # np.save(f'{reference_data_path}/z_{spacing}', z1)
             assert(np.allclose(z1, z2, equal_nan=True))
-            assert(np.allclose(z1, np.load(f'{reference_data_path}/z_{spacing}.npy'), equal_nan=True))
+            assert(np.allclose(z1, np.load(
+                f'{reference_data_path}/z_{spacing}.npy'), equal_nan=True))
 
-            
             # get frequency working range
             freqrange1 = msm1.working_frequency_range
             freqrange2 = msm2.working_frequency_range
             # np.save(f'{reference_data_path}/freqrange_{spacing}', freqrange1)
             assert(np.allclose(freqrange1, freqrange2, equal_nan=True))
-            assert(np.allclose(freqrange1, np.load(f'{reference_data_path}/freqrange_{spacing}.npy'), equal_nan=True))
-    
+            assert(np.allclose(freqrange1, np.load(
+                f'{reference_data_path}/freqrange_{spacing}.npy'), equal_nan=True))
+
             # only use frequencies in the working range
-            idx = np.logical_and(freqs1 >= freqrange1[0], freqs1 <= freqrange1[1])
+            idx = np.logical_and(
+                freqs1 >= freqrange1[0], freqs1 <= freqrange1[1])
 
             # plot
             ax.plot(freqs1[idx], transmission_loss1[idx])

@@ -3,3 +3,9 @@ Plots/
 cache/
 __pycache__/
 .vscode/
+
+dist/
+
+impedancetube.egg-info/
+
+.eggs/
