@@ -6,7 +6,7 @@ import numpy as np
 from numpy import exp, sin, pi, sqrt
 from traits.api import HasPrivateTraits, Property, Float, Trait, Delegate, Int, List, Array
 
-from .tube import Tube_Transmission
+from .tube import Tube_Transmission, Tube, Tube_Impedance
 
 
 class Measurement(HasPrivateTraits):
@@ -24,7 +24,8 @@ class Measurement(HasPrivateTraits):
     freq_data = Trait(PowerSpectra,
                       desc="power spectra object")
 
-    tube = Trait(Tube_Transmission)
+    # tube object
+    tube = Trait(Tube)
     
     # wave number vector:
     k = Property(depends_on=['freq_data'])
@@ -122,6 +123,9 @@ class Measurement_E2611(Measurement):
     freq_data_two_load = Trait(PowerSpectra,
                                desc="power spectra object")
 
+    # tube object
+    tube = Trait(Tube_Transmission)
+    
     # The transfer functions for all microphones:
     transfer_function = Property(
         desc='Transfer function between all mics and ref. mic (channel i_ref)')
