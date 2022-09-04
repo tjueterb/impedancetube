@@ -36,7 +36,7 @@ class Tube_Transmission(Tube):
 
 # Presets for tubes at TAP, TU Berlin:
 
-class Tube_TAP_Transmission_rect_narrow(Tube_Transmission):
+class Tube_Transmission_TAP_rect_narrow(Tube_Transmission):
     '''
     Tube Preset for the rectangular transmission tube at TAP, TU Berlin
     With microphone positions 1, 2, 3, 4 for higher frequencies
@@ -51,7 +51,7 @@ class Tube_TAP_Transmission_rect_narrow(Tube_Transmission):
     d = 0.5   # length of test specimen (test tube section is 0.7m)
 
 
-class Tube_TAP_Transmission_rect_wide(Tube_Transmission):
+class Tube_Transmission_TAP_rect_wide(Tube_Transmission):
     '''
     Preset for the rectangular transmission tube at TAP, TU Berlin
     With microphone positions 0, 2, 3, 5 for lower frequencies
@@ -65,7 +65,7 @@ class Tube_TAP_Transmission_rect_wide(Tube_Transmission):
     d = 0.5   # length of test specimen (test tube section is 0.7m)
 
 
-class Tube_TAP_Impedance_rect_25cm_narrow(Tube_Impedance):
+class Tube_Impedance_TAP_rect_25cm_narrow(Tube_Impedance):
     '''
     Preset for the rectangular impedance tube with side length 25cm at TAP, TU Berlin
     With microphone positions 1 and 2
@@ -76,7 +76,7 @@ class Tube_TAP_Impedance_rect_25cm_narrow(Tube_Impedance):
     x1 = 2.75
 
 
-class Tube_TAP_Impedance_rect_25cm_wide(Tube_Impedance):
+class Tube_Impedance_TAP_rect_25cm_wide(Tube_Impedance):
     '''
     Preset for the rectangular impedance tube with side length 25cm at TAP, TU Berlin
     With microphone positions 1 and 3
@@ -87,7 +87,7 @@ class Tube_TAP_Impedance_rect_25cm_wide(Tube_Impedance):
     x1 = 2.75
 
 
-class Tube_TAP_Impedance_rect_50cm_narrow(Tube_Impedance):
+class Tube_Impedance_TAP_rect_50cm_narrow(Tube_Impedance):
     '''
     Preset for the rectangular impedance tube with side length 25cm at TAP, TU Berlin
     With microphone positions 1 and 2
@@ -98,7 +98,7 @@ class Tube_TAP_Impedance_rect_50cm_narrow(Tube_Impedance):
     x1 = 2.75
 
 
-class Tube_TAP_Impedance_rect_50cm_wide(Tube_Impedance):
+class Tube_Impedance_TAP_rect_50cm_wide(Tube_Impedance):
     '''
     Preset for the rectangular impedance tube with side length 25cm at TAP, TU Berlin
     With microphone positions 1 and 3

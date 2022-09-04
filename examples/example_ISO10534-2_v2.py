@@ -122,7 +122,7 @@ for filename_measurement in filenames_measurement:
             #                           s=0.45,
             #                           x1=2.75)
             # # Or use a preset:
-            tube = imp.Tube_TAP_Impedance_rect_50cm_narrow() 
+            tube = imp.Tube_Impedance_TAP_rect_50cm_narrow() 
             mic_channel = mic_channel_narrow  # indices of microphones #1-#4
 
         elif spacing == 'wide':
@@ -132,7 +132,7 @@ for filename_measurement in filenames_measurement:
             #                           s=0.85,
             #                           x1=2.75)
             # # Or use a preset:
-            tube = imp.Tube_TAP_Impedance_rect_50cm_wide()
+            tube = imp.Tube_Impedance_TAP_rect_50cm_wide()
             mic_channel = mic_channel_wide
 
         msm = imp.Measurement_ISO10534(freq_data=freq_data,
