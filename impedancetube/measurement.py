@@ -518,3 +518,102 @@ class MicSwitchCalib_E2611(HasPrivateTraits):
         H_c = np.sqrt(H_1 * H_2)
 
         return H_c
+
+class Measurement_ISO10534(Measurement):
+    '''
+    Transfer Matrix Method following ISO 10534-2.
+    '''
+    
+    # channels of the microphones in the given freq_data object
+    ref_channel  = Int(0, desc="Channel index of the reference mic (position 1)")
+    mic_channel  = Int(1, desc="Channel index of mic in position 2")
+    
+    # tube object (has to be impedance tube with 2 microphone positions)
+    tube = Trait(Tube_Impedance)
+    
+    # The transfer functions for all microphones:
+    transfer_function = Property(
+        desc='Transfer function between positions 1 and 2 (ref_channel and mic_channel)')
+    
+    # reflection factor
+    reflection_factor = Property(desc='normal incidence reflection factor')
+    
+    # absorption coefficient
+    absorption_coefficient = Property(desc='normal incidence sound absorption coefficient')
+    
+    # specific acoustic impedance ratio
+    specific_acoustic_impedance_ratio = Property(
+        desc='specific acoustic impedance ratio Z / (rho * c)')
+    
+    # specific acoustic admittance ratio
+    specific_acoustic_admittance_ratio = Property(
+        desc='specific acoustic admittance ratio Z / (rho * c)')
+    
+    # Amplitude and Phase correction Transfer function
+    H_c = Array()
+    #TODO: either Initialize with ones (only possible after freq_data shape is known)
+    #TODO: Or rewrite the calib class so the entire object can be handed to this class
+    
+    def _get_transfer_function(self):
+        """Calculates the transfer function from position 1 to position 2 (eq. 14)
+              
+        Returns:
+            [array]:    Transfer function for all microphones 
+                        size: (f x 2), f: frequencies, n: channels
+        """
+        csm = self.freq_data.csm
+
+        # H_n_ref = np.empty(csm.shape[0], dtype=complex)  # create empty array
+
+        #NOTE: correct indexing of the csm verified with Adam
+        H_n_ref = csm[:, self.mic_channel, self.ref_channel] / \
+                  csm[:, self.ref_channel, self.ref_channel]  # eq (14)
+        # H_n_ref = csm[:, self.mic_channel, self.mic_channel] / \
+        #           csm[:, self.ref_channel, self.mic_channel]  # eq (15)
+                  
+        # apply correction transfer function:
+        H_n_ref = H_n_ref / self.H_c[:,self.mic_channel] #TODO: verify that this is the correct column of H_c
+
+        return H_n_ref
+    
+    def _get_reflection_factor(self):
+        '''
+        normal incidence reflection facto (ISO 10534-2 Ch. 7.7)
+        '''
+        # incident wave transfer function (eq. (D.5))
+        H_i = np.exp(-1j * self.k * self.tube.s)
+        
+        # reflected wave transfer functino (eq. (D.6))
+        H_r = np.exp( 1j * self.k * self.tube.s)
+        
+        # reflection factor (eq. (17))
+        r = ((self.transfer_function - H_i) /
+             (H_r - self.transfer_function)) * np.exp(2j * self.k * self.tube.x1)
+        
+        return r
+
+    def _get_absorption_coefficient(self):
+        '''
+        Normal incidence absorption coefficient (ISO 10534-2 Ch. 7.8)
+        '''
+        # eq. (18):
+        alpha = 1 - np.abs(self.reflection_factor)**2
+        return alpha
+
+    def _get_specific_acoustic_impedance_ratio(self):
+        '''
+        Specific acoustic impedance ratio (ISO 10534-2 Ch. 7.9)
+        '''
+        # eq. (19):
+        impedance_ratio = (1 + self.reflection_factor) / (1 - self.reflection_factor)
+        return impedance_ratio
+    
+    def _get_specific_acoustic_admittance_ratio(self):
+        '''
+        Specific acoustic admittance ratio (ISO 10534-2 Ch. 7.10)
+        '''
+        # eq. (20):
+        admittance_ratio =  1 / self.specific_acoustic_impedance_ratio
+        return admittance_ratio
+    
+    
