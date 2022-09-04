@@ -116,22 +116,22 @@ for filename_measurement in filenames_measurement:
     # use both narrow and wide microphone positions for lower and higher frequencies:
     for spacing in ['wide', 'narrow']:
         if spacing == 'narrow':
-            # # Either define your tube explicitly:
+            '''Either define your tube explicitly:'''
             # tube = imp.Tube_Impedance(tube_shape='rect',
             #                           tube_d=0.5,
             #                           s=0.45,
             #                           x1=2.75)
-            # # Or use a preset:
+            '''Or use a preset:'''
             tube = imp.Tube_Impedance_TAP_rect_50cm_narrow() 
             mic_channel = mic_channel_narrow  # indices of microphones #1-#4
 
         elif spacing == 'wide':
-            # # Either define your tube explicitly:
+            '''Either define your tube explicitly:'''
             # tube = imp.Tube_Impedance(tube_shape='rect',
             #                           tube_d=0.5,
             #                           s=0.85,
             #                           x1=2.75)
-            # # Or use a preset:
+            '''Or use a preset:'''
             tube = imp.Tube_Impedance_TAP_rect_50cm_wide()
             mic_channel = mic_channel_wide
 
