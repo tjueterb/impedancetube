@@ -77,7 +77,11 @@ class Measurement(HasPrivateTraits):
             tuple: lower and upper frequency limit
         """
         # distance between microphones:
-        s = min(self.tube.s1, self.tube.s2)
+        if isinstance(self.tube, Tube_Transmission):
+            s = min(self.tube.s1, self.tube.s2)
+        elif isinstance(self.tube, Tube_Impedance):
+            s = self.tube.s
+            
         # Lower frequency limit:
         # NOTE: in ISO 10534-2, 5% is recommended instead of 1%
         f_lower = 0.05 * self.c / s
@@ -92,7 +96,9 @@ class Measurement(HasPrivateTraits):
         f_upper_modes = K * self.c / self.tube.tube_d
 
         # Upper frequency limit due to mic spacing (cf. 6.5.4):
-        s = max(self.tube.s1, self.tube.s2)
+        if isinstance(self.tube, Tube_Transmission):
+            s = max(self.tube.s1, self.tube.s2)
+            
         f_upper_spacing = 0.8 * self.c / (2 * s)
 
         f_upper = min(f_upper_modes, f_upper_spacing)
