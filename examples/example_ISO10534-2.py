@@ -44,11 +44,11 @@ mic_channel_wide = 2
 
 # Filenames of the measurements (One file for each measurement):
 # (in the same directory as the other sound files):
-filenames_measurement = ['measurement_one_load.h5',  # add files here
+filenames_measurement = ['example_ISO10534-2.h5',  # add files here
                          ]
 
 # Parameters for frequency data handling:
-block_size = 4*2048
+block_size = 16*2048
 window = 'Hanning'
 overlap = '50%'
 cached = False
@@ -98,6 +98,7 @@ for i in filenames_switched:
     # store result:
     H_c[:, i] = calib.H_c
 
+H_c = np.ones_like(H_c) #TODO: synthesize calibration data and disable this
 
 # ---------------- Measurement  ----------------------------------------------
 # iterate over all measurements
@@ -148,7 +149,7 @@ for filename_measurement in filenames_measurement:
         reflection_factor = msm.reflection_factor
 
         # absorption coefficient
-        absorption_coefficient = msm.absorption_coefficient #TODO: check why there are 6 channels here
+        absorption_coefficient = msm.absorption_coefficient
         
         # specific acoustic impedance ratio
         specific_acoustic_impedance_ratio = msm.specific_acoustic_impedance_ratio
@@ -167,7 +168,8 @@ for filename_measurement in filenames_measurement:
 
     ax.set(title=filename_measurement,
            xlabel='f [Hz]',
-           ylabel='Absorption coefficient in dB')
+           ylabel='Absorption coefficient',
+           ylim=(0,1))
     ax.legend(['wide', 'narrow'])
 
     # Save or show plot:
