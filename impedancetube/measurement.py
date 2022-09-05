@@ -566,10 +566,12 @@ class Measurement_ISO10534(Measurement):
         # H_n_ref = np.empty(csm.shape[0], dtype=complex)  # create empty array
 
         #NOTE: correct indexing of the csm verified with Adam
-        H_n_ref = csm[:, self.mic_channel, self.ref_channel] / \
-                  csm[:, self.ref_channel, self.ref_channel]  # eq (14)
-        # H_n_ref = csm[:, self.mic_channel, self.mic_channel] / \
-        #           csm[:, self.ref_channel, self.mic_channel]  # eq (15)
+        # H_n_ref = csm[:, self.mic_channel, self.ref_channel] / \
+        #           csm[:, self.ref_channel, self.ref_channel]  # eq (14)
+        H_n_ref = csm[:, self.mic_channel, self.mic_channel] / \
+                  csm[:, self.ref_channel, self.mic_channel]  # eq (15)
+        # H_n_ref = np.sqrt((csm[:, self.mic_channel, self.ref_channel] / csm[:, self.ref_channel, self.ref_channel] *
+        #                    csm[:, self.mic_channel, self.mic_channel] / csm[:, self.ref_channel, self.mic_channel]))  # eq (16)
                   
         # apply correction transfer function:
         H_n_ref = H_n_ref / self.H_c[:,self.mic_channel] #TODO: verify that this is the correct column of H_c
